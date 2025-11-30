@@ -1,5 +1,5 @@
 $(function () {
-  const surat_jalan = $('#surat_jalan').DataTable({
+  const nota = $('#nota').DataTable({
     responsive: true,
     fixedColumns: true,
     scrollCollapse: true,

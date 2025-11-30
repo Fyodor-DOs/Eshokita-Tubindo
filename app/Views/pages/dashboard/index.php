@@ -1,4 +1,5 @@
 <?= $this->extend('layouts/dashboard') ?>
+<?= $this->section('title') ?>Dashboard - PT Eshokita<?= $this->endSection() ?>
 <?= $this->section('content') ?>
 
 <?= view('components/Breadcrumb', ['segment1' => 'dashboard']) ?>
@@ -51,7 +52,8 @@
         <thead class="table-light">
             <tr>
                 <th style="width:70px">NO NOTA</th>
-                <th style="width:150px">CUSTOMER</th>
+                <th style="width:140px">CUSTOMER</th>
+                <th style="width:80px">RUTE</th>
                 <?php foreach (($rekap_variants ?? []) as $v): ?>
                 <th style="width:60px"><?= esc($v['label']) ?></th>
                 <?php endforeach; ?>
@@ -63,9 +65,9 @@
             </tr>
         </thead>
         <tbody>
-            <tr class="table-primary"><td colspan="<?= 6 + count($rekap_variants ?? []) ?>" class="fw-bold">CASH</td></tr>
+            <tr class="table-primary"><td colspan="<?= 7 + count($rekap_variants ?? []) ?>" class="fw-bold">CASH</td></tr>
             <?php if (empty($rekap['cash'])): ?>
-                <tr><td colspan="<?= 6 + count($rekap_variants ?? []) ?>" class="text-center text-muted">Tidak ada data</td></tr>
+                <tr><td colspan="<?= 7 + count($rekap_variants ?? []) ?>" class="text-center text-muted">Tidak ada data</td></tr>
             <?php else: foreach ($rekap['cash'] as $row): ?>
                 <tr>
                     <td><?= esc($row['nota']) ?></td>
@@ -81,13 +83,14 @@
                 </tr>
             <?php endforeach; endif; ?>
 
-            <tr class="table-primary"><td colspan="<?= 6 + count($rekap_variants ?? []) ?>" class="fw-bold">KREDIT</td></tr>
+            <tr class="table-primary"><td colspan="<?= 7 + count($rekap_variants ?? []) ?>" class="fw-bold">KREDIT</td></tr>
             <?php if (empty($rekap['kredit'])): ?>
-                <tr><td colspan="<?= 6 + count($rekap_variants ?? []) ?>" class="text-center text-muted">Tidak ada data</td></tr>
+                <tr><td colspan="<?= 7 + count($rekap_variants ?? []) ?>" class="text-center text-muted">Tidak ada data</td></tr>
             <?php else: foreach ($rekap['kredit'] as $row): ?>
                 <tr>
                     <td><?= esc($row['nota']) ?></td>
                     <td><?= esc($row['customer']) ?></td>
+                    <td><?= esc($row['rute'] ?? '-') ?></td>
                     <?php foreach (($rekap_variants ?? []) as $v): ?>
                     <td><?= esc(($row['variants'][$v['key']] ?? '') ?: '') ?></td>
                     <?php endforeach; ?>

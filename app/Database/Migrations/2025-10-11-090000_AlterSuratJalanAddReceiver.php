@@ -8,9 +8,9 @@ class AlterSuratJalanAddReceiver extends Migration
 {
     public function up()
     {
-        // Add new columns to connect Surat Jalan with Pengiriman & Customer,
+        // Add new columns to connect Nota with Pengiriman & Customer,
         // plus store receiver name/signature. Also allow ttd_produksi to be NULL.
-        $this->forge->addColumn('surat_jalan', [
+        $this->forge->addColumn('nota', [
             'id_pengiriman' => [
                 'type' => 'INT',
                 'constraint' => 11,
@@ -39,7 +39,7 @@ class AlterSuratJalanAddReceiver extends Migration
         ]);
 
         // Modify ttd_produksi to be nullable
-        $this->forge->modifyColumn('surat_jalan', [
+        $this->forge->modifyColumn('nota', [
             'ttd_produksi' => [
                 'type' => 'TEXT',
                 'null' => true,
@@ -50,13 +50,13 @@ class AlterSuratJalanAddReceiver extends Migration
     public function down()
     {
         // Revert ttd_produksi to NOT NULL (best-effort; some DBs ignore null=false for TEXT without default)
-        $this->forge->modifyColumn('surat_jalan', [
+        $this->forge->modifyColumn('nota', [
             'ttd_produksi' => [
                 'type' => 'TEXT',
                 'null' => false,
             ],
         ]);
 
-        $this->forge->dropColumn('surat_jalan', ['id_pengiriman', 'id_customer', 'nama_penerima', 'ttd_penerima']);
+        $this->forge->dropColumn('nota', ['id_pengiriman', 'id_customer', 'nama_penerima', 'ttd_penerima']);
     }
 }

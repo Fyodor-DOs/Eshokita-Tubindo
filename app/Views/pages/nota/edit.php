@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 <?= view('components/Breadcrumb', ['segment1' => 'surat-jalan', 'segment2' => 'edit']) ?>
 
-<form method="post" action="<?= site_url('surat-jalan/edit/'.($surat_jalan['id_surat_jalan'] ?? 0)) ?>">
+<form method="post" action="<?= site_url('nota/edit/'.($surat_jalan['id_surat_jalan'] ?? 0)) ?>">
   <?= csrf_field() ?>
   <div class="card">
     <div class="card-body">

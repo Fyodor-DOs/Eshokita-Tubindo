@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class SuratJalanModel extends Model
 {
-    protected $table            = 'surat_jalan';
+    protected $table            = 'nota';
     protected $primaryKey       = 'id_surat_jalan';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';

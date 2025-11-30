@@ -75,8 +75,8 @@ $routes->group('rute', ['filters' => ['auth', 'role:admin,distributor']], functi
     $routes->post('delete/(:num)', 'RuteController::delete/$1');
 });
 
-// Surat Jalan
-$routes->group('surat-jalan', ['filters' => ['auth', 'role:admin,distributor']], function ($routes) {
+// Nota 
+$routes->group('nota', ['filters' => ['auth', 'role:admin,distributor']], function ($routes) {
     $routes->get('/', 'SuratJalanController::index');
     $routes->get('detail/(:num)', 'SuratJalanController::detail/$1');
     $routes->match(['GET','POST'], 'create', 'SuratJalanController::create');
@@ -86,6 +86,10 @@ $routes->group('surat-jalan', ['filters' => ['auth', 'role:admin,distributor']],
         $routes->get('print/(:num)', 'SuratJalanController::printSuratJalan/$1');
     $routes->get('print-batch/(:num)', 'SuratJalanController::printBatchByPengiriman/$1');
 });
+
+// Backward compatibility - redirect old URLs
+$routes->get('surat-jalan', function() { return redirect()->to('/nota'); });
+$routes->get('surat-jalan/(.*)', function($param) { return redirect()->to('/nota/' . $param); });
 
 // Pengiriman (Delivery/Distribution)
 $routes->group('pengiriman', ['filters' => ['auth', 'role:admin,distributor']], function ($routes) {

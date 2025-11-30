@@ -34,18 +34,22 @@ $role = current_role() ?? 'guest';
     </li>
     <?php endif; ?>
 
-    <?php if (in_array($role, ["distributor", "admin", "super-admin"])) : ?>
-    <!-- Manajemen Distribusi -->
+    <?php if (in_array($role, ["admin", "super-admin"])) : ?>
+    <!-- Manajemen Distribusi (Admin) -->
     <li class="nav-item">
         <a class="nav-link <?= ($segment === 'rute') ? 'bg-primary active' : '' ?>"
             href="<?= base_url('/rute') ?>">
             <i class="bi bi-signpost-2"></i> Rute
         </a>
     </li>
+    <?php endif; ?>
+
+    <?php if (in_array($role, ["distributor", "admin", "super-admin"])) : ?>
+    <!-- Manajemen Distribusi -->
     <li class="nav-item">
-        <a class="nav-link <?= ($segment === 'surat-jalan') ? 'bg-primary active' : '' ?>"
-            href="<?= base_url('/surat-jalan') ?>">
-            <i class="bi bi-file-earmark-text"></i> Surat Jalan
+        <a class="nav-link <?= ($segment === 'nota') ? 'bg-primary active' : '' ?>"
+            href="<?= base_url('/nota') ?>">
+            <i class="bi bi-file-earmark-text"></i> Nota
         </a>
     </li>
     <li class="nav-item">

@@ -1,6 +1,7 @@
 <?= $this->extend('layouts/dashboard') ?>
+<?= $this->section('title') ?>Detail Nota - PT Eshokita<?= $this->endSection() ?>
 <?= $this->section('content') ?>
-<?= view('components/Breadcrumb', ['segment1' => 'surat-jalan', 'segment2' => 'detail']) ?>
+<?= view('components/Breadcrumb', ['segment1' => 'nota', 'segment2' => 'detail']) ?>
 
 <?php $sj = $surat_jalan ?? []; ?>
 <div class="card">
@@ -12,7 +13,7 @@
     <div class="d-flex align-items-center gap-3 mb-2">
       <img src="<?= base_url('assets/image/Logo.png') ?>" alt="Logo" style="height:50px" onerror="this.style.display='none'"/>
       <div>
-        <h5 class="mb-0">SURAT JALAN BARANG</h5>
+        <h5 class="mb-0">NOTA PENGIRIMAN</h5>
         <small class="text-muted">No: <?= esc($noSurat) ?> | Tanggal: <?= esc(date('d M Y', strtotime($sj['tanggal'] ?? date('Y-m-d')))) ?></small>
       </div>
       <div class="ms-auto text-end">
@@ -71,7 +72,7 @@
     </div>
 
     <div class="mt-3 d-flex gap-2 justify-content-end">
-      <a href="<?= base_url('/surat-jalan/print/'.($sj['id_surat_jalan'])) ?>" class="btn btn-secondary" target="_blank"><i class="bi bi-printer"></i> Print</a>
+      <a href="<?= base_url('/nota/print/'.($sj['id_surat_jalan'])) ?>" class="btn btn-secondary" target="_blank"><i class="bi bi-printer"></i> Print</a>
     </div>
   </div>
 </div>

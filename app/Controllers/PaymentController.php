@@ -73,6 +73,25 @@ class PaymentController extends BaseController
         $items = [];
         if (!empty($invoice['transaction_items'])) {
             $items = json_decode($invoice['transaction_items'], true) ?: [];
+            
+            // Fix unknown products - lookup from database if name not exists
+            foreach ($items as &$item) {
+                if (empty($item['name']) || $item['name'] === 'Unknown') {
+                    $idProduct = (int)($item['id_product'] ?? 0);
+                    if ($idProduct > 0) {
+                        $product = $db->table('product p')
+                            ->select('p.name, p.unit, pc.name as category_name')
+                            ->join('product_category pc', 'pc.id_category = p.id_category', 'left')
+                            ->where('p.id_product', $idProduct)
+                            ->get()
+                            ->getRowArray();
+                        if ($product) {
+                            $item['name'] = $product['category_name'] . ' ' . $product['unit'] . 'kg';
+                        }
+                    }
+                }
+            }
+            unset($item);
         }
         
         // Get all payments for this invoice

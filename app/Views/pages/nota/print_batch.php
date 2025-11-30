@@ -6,7 +6,7 @@
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <title>Surat Jalan - BON <?= esc($pengiriman['no_bon'] ?? '-') ?></title>
+  <title>Nota - BON <?= esc($pengiriman['no_bon'] ?? '-') ?></title>
   <style>
     body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #222; }
     .page { page-break-after: always; padding: 16px; }
@@ -33,7 +33,7 @@
       <div class="brand">
         <img src="<?= base_url('assets/image/Logo.png') ?>" alt="Logo" />
         <div>
-          <div class="title">SURAT JALAN BARANG</div>
+          <div class="title">NOTA PENGIRIMAN</div>
           <div class="small muted">BON: <?= esc($pengiriman['no_bon'] ?? '-') ?> | Tanggal: <?= esc(date('d M Y', strtotime($pengiriman['tanggal'] ?? date('Y-m-d')))) ?></div>
         </div>
       </div>
@@ -50,7 +50,7 @@
       <div class="brand">
         <img src="<?= base_url('assets/image/Logo.png') ?>" alt="Logo" />
         <div>
-          <div class="title">SURAT JALAN BARANG</div>
+          <div class="title">NOTA PENGIRIMAN</div>
           <div class="small muted">BON: <?= esc($pengiriman['no_bon'] ?? '-') ?> | Tanggal: <?= esc(date('d M Y', strtotime($pengiriman['tanggal'] ?? date('Y-m-d')))) ?></div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 <?= $this->extend('layouts/dashboard') ?>
+<?= $this->section('title') ?>Pengiriman - PT Eshokita<?= $this->endSection() ?>
 <?= $this->section('content') ?>
 
 <?= view('components/Breadcrumb', ['segment1' => 'pengiriman']) ?>
@@ -81,7 +82,7 @@
                                 <th>Customer</th>
                                 <th class="text-end">Jumlah</th>
                                 <th>Status</th>
-                                <th>Surat Jalan</th>
+                                <th>Nota</th>
                                 <th>Bukti Diterima</th>
                             </tr>
                         </thead>
@@ -150,7 +151,7 @@ async function loadInvoicesIntoModal(idPengiriman){
             <td>
                 <div class="d-flex align-items-center gap-2">
                     <span class="small ${inv.foto_penerimaan? 'text-success':'text-muted'}">${inv.foto_penerimaan? 'Sudah':'Belum'}</span>
-                    <button class="btn btn-sm btn-success" data-action="terima" data-id="${inv.id_invoice}" ${inv.foto_penerimaan? 'disabled':(inv.foto_surat_jalan? '':'disabled title=\"Upload Surat Jalan dahulu\"')}><i class="bi bi-check2-circle"></i> ${inv.foto_penerimaan? 'Sudah Upload':'Upload'}</button>
+                    <button class="btn btn-sm btn-success" data-action="terima" data-id="${inv.id_invoice}" ${inv.foto_penerimaan? 'disabled':(inv.foto_surat_jalan? '':'disabled title="Upload Nota dahulu"')}><i class="bi bi-check2-circle"></i> ${inv.foto_penerimaan? 'Sudah Upload':'Upload'}</button>
                 </div>
             </td>`;
         tbody.appendChild(tr);

@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= $this->renderSection('title') ?: 'PT Eshokita' ?></title>
     <link rel="shortcut icon" href="<?= base_url('assets/image/favicon.ico') ?>" type="image/x-icon">
     <link rel="apple-touch-icon" sizes="180x180" href="<?= base_url('assets/image/apple-touch-icon.png') ?>">
     <link rel="icon" type="image/png" sizes="32x32" href="<?= base_url('assets/image/favicon-32x32.png') ?>">
@@ -48,7 +49,7 @@
     <script src="<?= base_url('assets/js/tables/rute.js') ?>" type="text/javascript"></script>
     <script src="<?= base_url('assets/js/tables/customer.js') ?>" type="text/javascript"></script>
     <script src="<?= base_url('assets/js/tables/pengiriman.js') ?>" type="text/javascript"></script>
-    <script src="<?= base_url('assets/js/tables/surat_jalan.js') ?>" type="text/javascript"></script>
+    <script src="<?= base_url('assets/js/tables/nota.js') ?>" type="text/javascript"></script>
     <script src="<?= base_url('assets/js/tables/product.js') ?>" type="text/javascript"></script>
     <script src="<?= base_url('assets/js/tables/product_category.js') ?>" type="text/javascript"></script>
     <script src="<?= base_url('assets/js/tables/stock.js') ?>" type="text/javascript"></script>

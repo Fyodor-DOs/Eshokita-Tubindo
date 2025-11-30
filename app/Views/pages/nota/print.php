@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <title>Surat Jalan Barang</title>
+  <meta charset="utf-8"/>
+  <title>Nota Pengiriman</title>
   <style>
     body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #222; }
     .page { padding: 16px; }
@@ -28,7 +28,7 @@
       <div class="brand">
         <img src="<?= base_url('assets/image/Logo.png') ?>" alt="Logo" />
         <div>
-          <div class="title">SURAT JALAN BARANG</div>
+          <div class="title">NOTA PENGIRIMAN</div>
           <div class="small muted">Tanggal: <?= esc(date('d M Y')) ?></div>
         </div>
       </div>

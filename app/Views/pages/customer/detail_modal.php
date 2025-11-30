@@ -49,9 +49,9 @@
   <div class="row g-3">
     <?php if(!empty($customer['foto_surat_jalan'])): ?>
     <div class="col-6">
-      <div class="mb-1"><strong>Surat Jalan</strong></div>
+      <div class="mb-1"><strong>Nota</strong></div>
       <a href="<?= base_url('uploads/suratjalan/'.$customer['foto_surat_jalan']) ?>" target="_blank" class="d-block border rounded p-2 text-center">
-        <img src="<?= base_url('uploads/suratjalan/'.$customer['foto_surat_jalan']) ?>" alt="Foto Surat Jalan" class="img-fluid" style="max-height:200px; object-fit:contain;"/>
+        <img src="<?= base_url('uploads/suratjalan/'.$customer['foto_surat_jalan']) ?>" alt="Foto Nota" class="img-fluid" style="max-height:200px; object-fit:contain;"/>
       </a>
     </div>
     <?php endif; ?>

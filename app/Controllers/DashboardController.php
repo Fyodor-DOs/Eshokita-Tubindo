@@ -73,10 +73,11 @@ class DashboardController extends BaseController
     {
         // Ambil semua invoice pada bulan (issue_date) dan transaksi terkait
         $builder = $this->db->table('invoice i')
-            ->select('i.id_invoice, i.invoice_no, i.issue_date, i.amount as invoice_amount, c.nama as customer_name, tr.items as tr_items, pg.pembayaran as pg_pembayaran')
+            ->select('i.id_invoice, i.invoice_no, i.issue_date, i.amount as invoice_amount, c.nama as customer_name, tr.items as tr_items, pg.pembayaran as pg_pembayaran, r.nama_wilayah as rute_name')
             ->join('transaction tr', 'tr.id_transaction = i.id_transaction', 'left')
             ->join('customer c', 'c.id_customer = tr.id_customer', 'left')
             ->join('pengiriman pg', 'pg.id_pengiriman = i.id_pengiriman', 'left')
+            ->join('rute r', 'r.kode_rute = c.kode_rute', 'left')
             ->where('YEAR(i.issue_date)', $year)
             ->where('MONTH(i.issue_date)', $mon)
             ->orderBy('c.nama', 'ASC');
@@ -191,6 +192,7 @@ class DashboardController extends BaseController
             $row = [
                 'nota'    => $inv['invoice_no'],
                 'customer'=> $inv['customer_name'] ?? '-',
+                'rute'    => $inv['rute_name'] ?? '-',
                 'kb'      => $kb ?: '',
                 'kk'      => $kk ?: '',
                 'srt'     => $srt ?: '',

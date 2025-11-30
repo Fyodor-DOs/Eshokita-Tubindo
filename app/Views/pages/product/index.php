@@ -1,4 +1,5 @@
 <?= $this->extend('layouts/dashboard') ?>
+<?= $this->section('title') ?>Produk - PT Eshokita<?= $this->endSection() ?>
 <?= $this->section('content') ?>
 
 <?= view('components/Breadcrumb', ['segment1' => 'product']) ?>

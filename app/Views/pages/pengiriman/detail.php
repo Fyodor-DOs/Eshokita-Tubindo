@@ -161,7 +161,7 @@
                 <div class="row g-3">
                     <?php if(!empty($pengiriman['foto_surat_jalan'])): ?>
                     <div class="col-md-6">
-                        <label class="form-label">Foto Surat Jalan</label>
+                        <label class="form-label">Foto Nota</label>
                         <div class="border rounded p-2"><img src="<?= base_url('uploads/suratjalan/'.$pengiriman['foto_surat_jalan']) ?>" class="img-fluid"/></div>
                     </div>
                     <?php endif; ?>

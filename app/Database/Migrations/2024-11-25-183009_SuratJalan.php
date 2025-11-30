@@ -39,13 +39,13 @@ class SuratJalan extends Migration
         ]);
 
         $this->forge->addKey('id_surat_jalan', true);
-        $this->forge->addForeignKey('kode_rute', 'rute', 'kode_rute', 'CASCADE', 'CASCADE', 'rute_surat_jalan');
-        $this->forge->createTable('surat_jalan');
+        $this->forge->addForeignKey('kode_rute', 'rute', 'kode_rute', 'CASCADE', 'CASCADE', 'rute_nota');
+        $this->forge->createTable('nota');
     }
 
     public function down()
     {
-        $this->forge->dropForeignKey('surat_jalan', 'rute_surat_jalan');
-        $this->forge->dropTable('surat_jalan');
+        $this->forge->dropForeignKey('nota', 'rute_nota');
+        $this->forge->dropTable('nota');
     }
 }

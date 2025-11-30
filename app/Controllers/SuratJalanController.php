@@ -21,14 +21,14 @@ class SuratJalanController extends BaseController
     public function index()
     {
         $data['suratJalan'] = $this->suratJalanModel
-            ->select('surat_jalan.*, rute.nama_wilayah as rute_name, customer.nama as customer_name, pengiriman.no_bon, pengiriman.id_pengiriman')
-            ->join('rute', 'surat_jalan.kode_rute = rute.kode_rute', 'left')
-            ->join('customer', 'customer.id_customer = surat_jalan.id_customer', 'left')
-            ->join('pengiriman', 'pengiriman.id_pengiriman = surat_jalan.id_pengiriman', 'left')
-            ->orderBy('surat_jalan.id_surat_jalan', 'DESC')
+            ->select('nota.*, rute.nama_wilayah as rute_name, customer.nama as customer_name, pengiriman.no_bon, pengiriman.id_pengiriman')
+            ->join('rute', 'nota.kode_rute = rute.kode_rute', 'left')
+            ->join('customer', 'customer.id_customer = nota.id_customer', 'left')
+            ->join('pengiriman', 'pengiriman.id_pengiriman = nota.id_pengiriman', 'left')
+            ->orderBy('nota.id_surat_jalan', 'DESC')
             ->findAll();
 
-        return view('pages/surat_jalan/index', $data);
+        return view('pages/nota/index', $data);
     }
 
     public function create()
@@ -159,7 +159,7 @@ class SuratJalanController extends BaseController
         // Filter out those that already have surat jalan
         $pengirimanList = [];
         foreach ($allPengiriman as $p) {
-            $hasSJ = $db->table('surat_jalan')
+            $hasSJ = $db->table('nota')
                 ->where('id_pengiriman', $p['id_pengiriman'])
                 ->countAllResults();
             if ($hasSJ == 0) {
@@ -168,7 +168,7 @@ class SuratJalanController extends BaseController
         }
         
         $data['pengirimanList'] = $pengirimanList;
-        return view('pages/surat_jalan/create', $data);
+        return view('pages/nota/create', $data);
     }
 
     public function createQuick($idPengiriman)
@@ -254,9 +254,9 @@ class SuratJalanController extends BaseController
     public function detail($id)
     {
         $sj = $this->suratJalanModel
-            ->select('surat_jalan.*, rute.nama_wilayah as rute_name, customer.nama as customer_name, customer.alamat as customer_address')
-            ->join('rute', 'surat_jalan.kode_rute = rute.kode_rute', 'left')
-            ->join('customer', 'surat_jalan.id_customer = customer.id_customer', 'left')
+            ->select('nota.*, rute.nama_wilayah as rute_name, customer.nama as customer_name, customer.alamat as customer_address')
+            ->join('rute', 'nota.kode_rute = rute.kode_rute', 'left')
+            ->join('customer', 'nota.id_customer = customer.id_customer', 'left')
             ->find($id);
         if(!$sj){ throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Surat Jalan tidak ditemukan'); }
 
@@ -302,7 +302,7 @@ class SuratJalanController extends BaseController
             }
         }
 
-        return view('pages/surat_jalan/detail', [ 'surat_jalan' => $sj, 'items' => $items ]);
+        return view('pages/nota/detail', [ 'surat_jalan' => $sj, 'items' => $items ]);
     }
 
     public function print($id)
@@ -382,7 +382,7 @@ class SuratJalanController extends BaseController
         $ruteModel = new \App\Models\RuteModel();
         $rute_info = $ruteModel->where('kode_rute', $sj['kode_rute'])->first();
 
-        return view('pages/surat_jalan/print', [
+        return view('pages/nota/print', [
             'pengirim' => $pengirim,
             'penerima' => $penerima,
             'barang'   => $barang,
@@ -500,7 +500,7 @@ class SuratJalanController extends BaseController
             }
         }
 
-        $html = view('pages/surat_jalan/print_batch', [
+        $html = view('pages/nota/print_batch', [
             'pengiriman' => $pengiriman,
             'pages' => $pages,
         ]);
@@ -552,11 +552,11 @@ class SuratJalanController extends BaseController
         }
 
         $data['surat_jalan'] = $this->suratJalanModel
-            ->join('rute', 'surat_jalan.kode_rute = rute.kode_rute', 'left')
+            ->join('rute', 'nota.kode_rute = rute.kode_rute', 'left')
             ->find($id);
         $data['rutes'] = $this->ruteModel->findAll();
 
-        return view('pages/surat_jalan/edit', $data);
+        return view('pages/nota/edit', $data);
     }
 
     public function delete($id)

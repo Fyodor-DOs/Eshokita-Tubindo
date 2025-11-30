@@ -15,9 +15,9 @@
 </head>
 <body>
 <table>
-  <tr><td class="title" colspan="<?= 6 + count($variants ?? []) ?>">REKAP PENJUALAN</td></tr>
+  <tr><td class="title" colspan="<?= 7 + count($variants ?? []) ?>">REKAP PENJUALAN</td></tr>
   <tr>
-    <td class="no-border" colspan="<?= 6 + count($variants ?? []) ?>">Hari / Tgl : <?php 
+    <td class="no-border" colspan="<?= 7 + count($variants ?? []) ?>">Hari / Tgl : <?php 
       // If date is YYYY-MM format, show as 01-MM-YYYY, else show as d-m-Y
       if (preg_match('/^\d{4}-\d{2}$/', $date)) {
         echo esc('01-' . date('m-Y', strtotime($date . '-01')));
@@ -28,7 +28,8 @@
   </tr>
   <tr>
     <th style="width:45px">NO NOTA</th>
-    <th style="width:80px">CUSTOMER</th>
+    <th style="width:70px">CUSTOMER</th>
+    <th style="width:45px">RUTE</th>
     <?php foreach (($variants ?? []) as $v): ?>
     <th style="width:28px"><?= esc($v['label']) ?></th>
     <?php endforeach; ?>
@@ -38,13 +39,14 @@
     <th style="width:50px">KREDIT</th>
     <th style="width:40px">KET</th>
   </tr>
-  <tr><td colspan="<?= 6 + count($variants ?? []) ?>" class="section">CASH</td></tr>
+  <tr><td colspan="<?= 7 + count($variants ?? []) ?>" class="section">CASH</td></tr>
   <?php if (empty($rows['cash'])): ?>
-    <tr><td colspan="<?= 6 + count($variants ?? []) ?>" class="text-center">(Tidak ada data)</td></tr>
+    <tr><td colspan="<?= 7 + count($variants ?? []) ?>" class="text-center">(Tidak ada data)</td></tr>
   <?php else: foreach ($rows['cash'] as $r): ?>
     <tr>
       <td><?= esc($r['nota']) ?></td>
       <td><?= esc($r['customer']) ?></td>
+      <td><?= esc($r['rute'] ?? '-') ?></td>
       <?php foreach (($variants ?? []) as $v): ?>
       <td><?= esc(($r['variants'][$v['key']] ?? '') ?: '') ?></td>
       <?php endforeach; ?>
@@ -55,13 +57,14 @@
       <td><?= esc($r['ket']) ?></td>
     </tr>
   <?php endforeach; endif; ?>
-  <tr><td colspan="<?= 6 + count($variants ?? []) ?>" class="section">KREDIT</td></tr>
+  <tr><td colspan="<?= 7 + count($variants ?? []) ?>" class="section">KREDIT</td></tr>
   <?php if (empty($rows['kredit'])): ?>
-    <tr><td colspan="<?= 6 + count($variants ?? []) ?>" class="text-center">(Tidak ada data)</td></tr>
+    <tr><td colspan="<?= 7 + count($variants ?? []) ?>" class="text-center">(Tidak ada data)</td></tr>
   <?php else: foreach ($rows['kredit'] as $r): ?>
     <tr>
       <td><?= esc($r['nota']) ?></td>
       <td><?= esc($r['customer']) ?></td>
+      <td><?= esc($r['rute'] ?? '-') ?></td>
       <?php foreach (($variants ?? []) as $v): ?>
       <td><?= esc(($r['variants'][$v['key']] ?? '') ?: '') ?></td>
       <?php endforeach; ?>
@@ -73,15 +76,15 @@
     </tr>
   <?php endforeach; endif; ?>
   <tr style="font-weight:bold; background:#f0f0f0">
-    <td colspan="<?= 3 + count($variants ?? []) ?>" class="text-right" style="text-align:right">TOTAL</td>
+    <td colspan="<?= 4 + count($variants ?? []) ?>" class="text-right" style="text-align:right">TOTAL</td>
     <td><?= number_format($totals['total_hrg'] ?? 0, 0, ',', '.') ?></td>
     <td><?= number_format($totals['cash'] ?? 0, 0, ',', '.') ?></td>
     <td><?= number_format($totals['kredit'] ?? 0, 0, ',', '.') ?></td>
     <td></td>
   </tr>
-  <tr><td colspan="<?= 6 + count($variants ?? []) ?>" class="no-border" style="height:6px"></td></tr>
+  <tr><td colspan="<?= 7 + count($variants ?? []) ?>" class="no-border" style="height:6px"></td></tr>
   <tr>
-    <td colspan="<?= 6 + count($variants ?? []) ?>" class="no-border">
+    <td colspan="<?= 7 + count($variants ?? []) ?>" class="no-border">
       <table style="width:100%">
         <tr>
           <th style="width:25%">keterangan</th>
