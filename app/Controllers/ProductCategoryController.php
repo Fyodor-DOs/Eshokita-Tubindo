@@ -23,29 +23,44 @@ class ProductCategoryController extends BaseController
     public function create()
     {
         if ($this->request->getMethod() === 'POST') {
-            $name = $this->request->getPost('name');
             $data = [
-                'name' => $name,
+                'name' => $this->request->getPost('name'),
                 'description' => $this->request->getPost('description'),
             ];
-            // Validasi manual: cek apakah nama sudah ada
-            $existing = $this->categoryModel->where('name', $name)->first();
-            if ($existing) {
-                return $this->response->setJSON(['success' => false, 'message' => ['name' => 'Nama kategori sudah ada']]);
-            }
+
+            // Try insert and capture result for debugging
             try {
-                if ($this->categoryModel->insert($data)) {
-                    return $this->response->setJSON(['success' => true, 'message' => 'Kategori berhasil ditambahkan', 'url' => '/product-category']);
-                }
-            } catch (\Throwable $th) {
-                return $this->response->setJSON(['success' => false, 'message' => ['name' => 'Nama kategori sudah ada']]);
+                $result = $this->categoryModel->insert($data);
+            } catch (\Throwable $e) {
+                // Log unexpected exception
+                log_message('error', 'ProductCategoryController::create exception: ' . $e->getMessage());
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan saat menyimpan kategori',
+                    'debug' => $e->getMessage(),
+                ]);
             }
-            // Jika gagal insert, ambil error dari model
+
+            // Log result and any model errors to writable/logs for diagnosis
             $errors = $this->categoryModel->errors();
-            if (isset($errors['name']) && (strpos($errors['name'], 'already exists') !== false || strpos($errors['name'], 'sudah ada') !== false)) {
-                return $this->response->setJSON(['success' => false, 'message' => ['name' => 'Nama kategori sudah ada']]);
+            log_message('debug', 'ProductCategoryController::create result=' . var_export($result, true) . ' errors=' . json_encode($errors));
+
+            if ($result === false) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => $errors ?: 'Gagal menyimpan kategori',
+                    'debug' => ['insertResult' => $result],
+                ]);
             }
-            return $this->response->setJSON(['success' => false, 'message' => $errors]);
+
+            // Success: include insert id in response for verification
+            $insertId = (int)$this->categoryModel->getInsertID();
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Kategori berhasil ditambahkan',
+                'url' => '/product-category',
+                'id' => $insertId,
+            ]);
         }
         return view('pages/product_category/create');
     }
@@ -59,7 +74,6 @@ class ProductCategoryController extends BaseController
     public function edit($id)
     {
         if ($this->request->getMethod() === 'POST') {
-            // Get current category data
             $currentCategory = $this->categoryModel->find($id);
             $newName = $this->request->getPost('name');
             
@@ -68,16 +82,10 @@ class ProductCategoryController extends BaseController
                 'description' => $this->request->getPost('description'),
             ];
             
-            // Only validate unique if name changed
-            if ($currentCategory['name'] !== $newName) {
-                // Name changed, check if new name already exists
-                $existing = $this->categoryModel->where('name', $newName)
-                    ->where('id_category !=', $id)
-                    ->first();
-                
-                if ($existing) {
-                    return $this->response->setJSON(['success' => false, 'message' => ['name' => 'Nama kategori sudah ada']]);
-                }
+            // Jika nama tidak berubah, skip validasi unique
+            if ($currentCategory && $currentCategory['name'] === $newName) {
+                // Hapus aturan is_unique sementara untuk update tanpa ubah nama
+                $this->categoryModel->setValidationRule('name', 'required|min_length[2]');
             }
             
             if ($this->categoryModel->update($id, $data)) {

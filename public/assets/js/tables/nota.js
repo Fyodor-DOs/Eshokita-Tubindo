@@ -102,7 +102,7 @@ $(function () {
                 style: 'background-color: #0d6efd; border-color: #0d6efd;',
               },
               action: function (dt) {
-                window.location.href = '/surat-jalan/create';
+                window.location.href = '/nota/create';
               },
             },
           ],
@@ -125,7 +125,7 @@ $(function () {
 
   $('#ruteFilter').on('change', function () {
     var selectedValue = $(this).val();
-    surat_jalan.column(2).search(selectedValue).draw();
+    nota.column(4).search(selectedValue).draw();
   });
 
   $('#dt-export-0').on('change', function () {
