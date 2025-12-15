@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
     <link rel="stylesheet" type="text/css" href="<?= base_url('vendor/jqsignature/css/jquery.signature.css') ?>">
     <link rel="stylesheet" type="text/css" href="<?= base_url('assets/css/style.css') ?>">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </head>
 

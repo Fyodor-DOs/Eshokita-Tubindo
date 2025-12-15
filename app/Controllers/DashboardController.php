@@ -30,6 +30,7 @@ class DashboardController extends BaseController
         }
 
         $month = $this->request->getGet('month') ?: date('Y-m'); // format YYYY-MM
+        $yearFilter = $this->request->getGet('year') ?: date('Y'); // format YYYY
         // Get counts within the selected month
         [$year, $mon] = explode('-', $month);
 
@@ -45,13 +46,60 @@ class DashboardController extends BaseController
             'pengiriman' => $pengirimanCount,
             'pembayaran' => $this->getPembayaran((int)$year, (int)$mon),
             'month'      => $month,
+            'year'       => $yearFilter,
             'rekap'      => $rekapData['rows'],
             'rekap_summary' => $rekapData['summary'],
             'rekap_totals'  => $rekapData['totals'],
             'rekap_variants' => $rekapData['variants'],
+            'chart_sales_trend' => $this->getSalesTrend((int)$yearFilter),
+            'chart_product_distribution' => $this->getProductDistribution((int)$year, (int)$mon),
         ];
 
         return view('pages/dashboard/index', $data);
+    }
+
+    public function getChartCashVsKredit()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['error' => 'Unauthorized']);
+        }
+
+        $month = $this->request->getGet('month') ?: date('Y-m');
+        [$year, $mon] = explode('-', $month);
+        
+        $rekapData = $this->getRekapPenjualan((int)$year, (int)$mon);
+        
+        return $this->response->setJSON([
+            'cash' => $rekapData['totals']['cash'] ?? 0,
+            'kredit' => $rekapData['totals']['kredit'] ?? 0
+        ]);
+    }
+
+    public function getChartProductDistribution()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['error' => 'Unauthorized']);
+        }
+
+        $month = $this->request->getGet('month') ?: date('Y-m');
+        [$year, $mon] = explode('-', $month);
+        
+        $data = $this->getProductDistribution((int)$year, (int)$mon);
+        
+        return $this->response->setJSON($data);
+    }
+
+    public function getChartSalesTrend()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['error' => 'Unauthorized']);
+        }
+
+        $year = $this->request->getGet('year') ?: date('Y');
+        
+        $data = $this->getSalesTrend((int)$year);
+        
+        return $this->response->setJSON($data);
     }
 
     private function getPembayaran(int $year, int $mon)
@@ -66,6 +114,83 @@ class DashboardController extends BaseController
         return [
             'label' => array_column($result, 'pembayaran'),
             'series' => array_column($result, 'total')
+        ];
+    }
+
+    private function getSalesTrend(int $year): array
+    {
+        // Get monthly sales data for the year
+        $builder = $this->db->table('invoice i')
+            ->select('MONTH(i.issue_date) as month, SUM(i.amount) as total_amount')
+            ->where('YEAR(i.issue_date)', $year)
+            ->groupBy('MONTH(i.issue_date)')
+            ->orderBy('MONTH(i.issue_date)', 'ASC');
+        
+        $results = $builder->get()->getResultArray();
+        
+        // Initialize all months with 0
+        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+        $data = array_fill(0, 12, 0);
+        
+        foreach ($results as $row) {
+            $monthIndex = (int)$row['month'] - 1;
+            $data[$monthIndex] = (float)$row['total_amount'];
+        }
+        
+        return [
+            'labels' => $months,
+            'data' => $data
+        ];
+    }
+
+    private function getProductDistribution(int $year, int $mon): array
+    {
+        // Get invoices with transaction items for the month
+        $builder = $this->db->table('invoice i')
+            ->select('tr.items')
+            ->join('transaction tr', 'tr.id_transaction = i.id_transaction', 'left')
+            ->where('YEAR(i.issue_date)', $year)
+            ->where('MONTH(i.issue_date)', $mon)
+            ->where('tr.items IS NOT NULL');
+        
+        $invoices = $builder->get()->getResultArray();
+        
+        // Get product categories mapping
+        $products = $this->db->table('product p')
+            ->select('p.id_product, pc.name as category_name')
+            ->join('product_category pc', 'pc.id_category = p.id_category')
+            ->get()->getResultArray();
+        
+        $productMap = [];
+        foreach ($products as $p) {
+            $productMap[$p['id_product']] = $p['category_name'];
+        }
+        
+        // Count quantities by category
+        $categoryTotals = [];
+        foreach ($invoices as $inv) {
+            if (!empty($inv['items'])) {
+                $items = json_decode($inv['items'], true);
+                if (is_array($items)) {
+                    foreach ($items as $item) {
+                        $idProduct = (int)($item['id_product'] ?? 0);
+                        $qty = (int)($item['qty'] ?? 0);
+                        
+                        if ($idProduct > 0 && isset($productMap[$idProduct])) {
+                            $category = $productMap[$idProduct];
+                            $categoryTotals[$category] = ($categoryTotals[$category] ?? 0) + $qty;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Sort by quantity descending
+        arsort($categoryTotals);
+        
+        return [
+            'labels' => array_keys($categoryTotals),
+            'data' => array_values($categoryTotals)
         ];
     }
 

@@ -7,6 +7,11 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'DashboardController::index', ['filters' => ['auth', 'role:admin,distributor,produksi']]);
 
+// Dashboard Chart API Endpoints
+$routes->get('dashboard/chart/cash-vs-kredit', 'DashboardController::getChartCashVsKredit', ['filters' => ['auth']]);
+$routes->get('dashboard/chart/product-distribution', 'DashboardController::getChartProductDistribution', ['filters' => ['auth']]);
+$routes->get('dashboard/chart/sales-trend', 'DashboardController::getChartSalesTrend', ['filters' => ['auth']]);
+
 // Route untuk UserController
 $routes->group('user', ['filters' => ['auth', 'role:admin']], function ($routes) {
     $routes->get('/', 'UserController::index');
