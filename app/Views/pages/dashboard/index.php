@@ -110,9 +110,9 @@
             </tr>
         </thead>
         <tbody>
-            <tr class="table-primary"><td colspan="<?= 7 + count($rekap_variants ?? []) ?>" class="fw-bold">CASH</td></tr>
+            <tr class="table-primary"><td colspan="<?= 8 + count($rekap_variants ?? []) ?>" class="fw-bold">CASH</td></tr>
             <?php if (empty($rekap['cash'])): ?>
-                <tr><td colspan="<?= 7 + count($rekap_variants ?? []) ?>" class="text-center text-muted">Tidak ada data</td></tr>
+                <tr><td colspan="<?= 8 + count($rekap_variants ?? []) ?>" class="text-center text-muted">Tidak ada data</td></tr>
             <?php else: foreach ($rekap['cash'] as $row): ?>
                 <tr>
                     <td><?= esc($row['nota']) ?></td>
@@ -129,9 +129,9 @@
                 </tr>
             <?php endforeach; endif; ?>
 
-            <tr class="table-primary"><td colspan="<?= 7 + count($rekap_variants ?? []) ?>" class="fw-bold">KREDIT</td></tr>
+            <tr class="table-primary"><td colspan="<?= 8 + count($rekap_variants ?? []) ?>" class="fw-bold">KREDIT</td></tr>
             <?php if (empty($rekap['kredit'])): ?>
-                <tr><td colspan="<?= 7 + count($rekap_variants ?? []) ?>" class="text-center text-muted">Tidak ada data</td></tr>
+                <tr><td colspan="<?= 8 + count($rekap_variants ?? []) ?>" class="text-center text-muted">Tidak ada data</td></tr>
             <?php else: foreach ($rekap['kredit'] as $row): ?>
                 <tr>
                     <td><?= esc($row['nota']) ?></td>
