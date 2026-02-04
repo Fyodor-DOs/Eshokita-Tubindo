@@ -18,10 +18,11 @@
                                 class="d-none border my-1 rounded overflow-y-scroll position-absolute z-1 bg-white shadow"
                                 style="max-height: 150px;">
                                 <ul class="list-group list-group-flush p-2">
-                                    <?php foreach ($rutes as $rute) : ?>
+                                    <?php foreach ($rutes as $rute): ?>
                                         <li class="list-group-item list-group-item-action" data-id="<?= $rute['kode_rute'] ?>"
                                             style="cursor: pointer;">
-                                            <?= $rute['kode_rute'] ?> - <?= $rute['nama_wilayah'] ?></li>
+                                            <?= $rute['kode_rute'] ?> - <?= $rute['nama_wilayah'] ?>
+                                        </li>
                                     <?php endforeach; ?>
                                 </ul>
                             </div>
@@ -108,15 +109,25 @@
                                 </thead>
                                 <tbody>
                                     <?php foreach ($products as $product): ?>
-                                        <tr data-id="<?= $product['id_product'] ?>" data-price="<?= (float)$product['price'] ?>" data-stock="<?= (int)($product['qty'] ?? 0) ?>">
+                                        <tr data-id="<?= $product['id_product'] ?>" data-price="<?= (float) $product['price'] ?>"
+                                            data-stock="<?= (int) ($product['qty'] ?? 0) ?>">
                                             <td>
                                                 <div class="fw-semibold"><?= esc($product['name']) ?></div>
                                                 <div class="text-muted small">SKU: <?= esc($product['sku'] ?? '-') ?></div>
                                             </td>
                                             <td class="text-end">Rp <?= number_format($product['price'], 0, ',', '.') ?></td>
                                             <td>
-                                                <input type="number" class="form-control qty" min="0" placeholder="0">
-                                                <div class="form-text sisa-note">Stok: <?= (int)($product['qty'] ?? 0) ?> | Sisa: <?= (int)($product['qty'] ?? 0) ?></div>
+                                                <?php $stock = (int) ($product['qty'] ?? 0); ?>
+                                                <input type="number" class="form-control qty" min="0" max="<?= $stock ?>"
+                                                    placeholder="0" <?= $stock <= 0 ? 'disabled' : '' ?>>
+                                                <div
+                                                    class="form-text sisa-note <?= $stock <= 0 ? 'text-danger fw-bold' : '' ?>">
+                                                    <?php if ($stock <= 0): ?>
+                                                        <span class="text-danger">Stok Habis</span>
+                                                    <?php else: ?>
+                                                        Stok: <?= $stock ?> | Sisa: <?= $stock ?>
+                                                    <?php endif; ?>
+                                                </div>
                                             </td>
                                             <td class="text-end subtotal">Rp 0</td>
                                         </tr>
@@ -131,7 +142,7 @@
                             </table>
                         </div>
                         <input type="hidden" name="order_items" id="order_items">
-                        
+
                     <?php else: ?>
                         <p class="text-muted">Tidak ada produk aktif. Silakan tambahkan produk terlebih dahulu.</p>
                     <?php endif; ?>
@@ -149,32 +160,41 @@
 </form>
 
 <script>
-    $(document).ready(function() {
+    $(document).ready(function () {
         initAutoComplete('kode_rute', 'nama_wilayah', 'list_rute');
 
-        function formatR(n){ return 'Rp ' + (n||0).toLocaleString('id-ID'); }
-        function recalc(){
-            let total = 0; const items=[];
-            $("tbody tr[data-id]").each(function(){
+        function formatR(n) { return 'Rp ' + (n || 0).toLocaleString('id-ID'); }
+        function recalc() {
+            let total = 0; const items = [];
+            $("tbody tr[data-id]").each(function () {
                 const id = $(this).data('id');
-                const price = parseFloat($(this).data('price'))||0;
-                const stock = parseFloat($(this).data('stock'))||0;
-                const qty = parseFloat($(this).find('.qty').val())||0;
-                const sub = price*qty; total += sub;
+                const price = parseFloat($(this).data('price')) || 0;
+                const stock = parseFloat($(this).data('stock')) || 0;
+                let qty = parseFloat($(this).find('.qty').val()) || 0;
+                // Clamp qty to stock if exceeded
+                if (qty > stock && stock > 0) {
+                    qty = stock;
+                    $(this).find('.qty').val(stock);
+                }
+                const sub = price * qty; total += sub;
                 $(this).find('.subtotal').text(formatR(sub));
-                if(qty>0){ items.push({id_product:id, qty:qty, price:price, subtotal:sub}); }
+                if (qty > 0) { items.push({ id_product: id, qty: qty, price: price, subtotal: sub }); }
                 const sisa = Math.max(0, stock - qty);
-                $(this).find('.sisa-note').text('Stok: '+(stock||0)+' | Sisa: '+sisa);
+                if (stock <= 0) {
+                    $(this).find('.sisa-note').html('<span class="text-danger">Stok Habis</span>');
+                } else {
+                    $(this).find('.sisa-note').text('Stok: ' + (stock || 0) + ' | Sisa: ' + sisa);
+                }
             });
             $('#grandTotal').text(formatR(total));
             $('#order_items').val(JSON.stringify(items));
         }
-        $(document).on('input','.qty',recalc);
+        $(document).on('input', '.qty', recalc);
         recalc();
 
         // Intercept submit with proper error handling
         let __createProcessing = false;
-        document.getElementById('formCreateCustomer').addEventListener('submit', async function(e){
+        document.getElementById('formCreateCustomer').addEventListener('submit', async function (e) {
             e.preventDefault();
             e.stopImmediatePropagation(); // Prevent global form handler from intercepting
             if (__createProcessing) {
@@ -182,7 +202,7 @@
                 return; // prevent double submit
             }
             __createProcessing = true;
-            try { recalc(); } catch(_) {}
+            try { recalc(); } catch (_) { }
             const submitBtn = this.querySelector('button[type="submit"]');
             const originalBtnText = submitBtn ? submitBtn.innerHTML : '';
             if (submitBtn) {
@@ -191,19 +211,19 @@
             }
             const fd = new FormData(this); // includes CSRF
             try {
-                const res = await fetch(this.action, { method:'POST', headers:{ 'X-Requested-With':'XMLHttpRequest', 'Accept':'application/json' }, body: fd });
-                const ct = (res.headers.get('content-type')||'').toLowerCase();
-                if (ct.includes('application/json')){
+                const res = await fetch(this.action, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }, body: fd });
+                const ct = (res.headers.get('content-type') || '').toLowerCase();
+                if (ct.includes('application/json')) {
                     const j = await res.json();
-                    if (j && j.success){
+                    if (j && j.success) {
                         // Success - save message and redirect like order_again
                         try {
                             sessionStorage.setItem('success_message', j.message || 'Customer berhasil dibuat');
-                        } catch(_) {}
+                        } catch (_) { }
                         if (submitBtn) submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Berhasil! Mengalihkan...';
-                        if (j.url) { 
+                        if (j.url) {
                             window.location.href = j.url;
-                            return; 
+                            return;
                         }
                         window.location.href = '<?= base_url('customer') ?>';
                         return;

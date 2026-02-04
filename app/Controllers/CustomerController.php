@@ -48,23 +48,26 @@ class CustomerController extends BaseController
             // Buat kamus produk untuk lookup nama & harga default bila diperlukan
             $productsAll = $this->productModel->where('active', 1)->findAll();
             $byId = [];
-            foreach ($productsAll as $p) { $byId[$p['id_product']] = $p; }
+            foreach ($productsAll as $p) {
+                $byId[$p['id_product']] = $p;
+            }
 
             // Bangun mapping produk hanya dari item yang dipesan (jika ada)
             if (!empty($items)) {
                 foreach ($items as &$it) {
-                    $pid = (int)($it['id_product'] ?? 0);
+                    $pid = (int) ($it['id_product'] ?? 0);
                     $p = $byId[$pid] ?? null;
-                    $it['name'] = $p['name'] ?? ('Produk #'.$pid);
+                    $it['name'] = $p['name'] ?? ('Produk #' . $pid);
                 }
                 unset($it);
                 // Untuk field produk (legacy), simpan mapping id->name+price
                 foreach ($items as $it) {
-                    $pid = (int)($it['id_product'] ?? 0);
-                    if ($pid <= 0) continue;
+                    $pid = (int) ($it['id_product'] ?? 0);
+                    if ($pid <= 0)
+                        continue;
                     $produk[$pid] = [
-                        'name' => $byId[$pid]['name'] ?? ('Produk #'.$pid),
-                        'price' => isset($it['price']) ? (float)$it['price'] : (float)($byId[$pid]['price'] ?? 0)
+                        'name' => $byId[$pid]['name'] ?? ('Produk #' . $pid),
+                        'price' => isset($it['price']) ? (float) $it['price'] : (float) ($byId[$pid]['price'] ?? 0)
                     ];
                 }
             }
@@ -89,8 +92,8 @@ class CustomerController extends BaseController
             ];
 
             // Check if customer with same telepon or email already exists
-            $tel = trim((string)($input['telepon'] ?? ''));
-            $eml = strtolower(trim((string)($input['email'] ?? '')));
+            $tel = trim((string) ($input['telepon'] ?? ''));
+            $eml = strtolower(trim((string) ($input['email'] ?? '')));
             $existing = null;
             if ($tel !== '') {
                 $existing = $this->customerModel->where('telepon', $tel)->first();
@@ -105,46 +108,63 @@ class CustomerController extends BaseController
                     ->setStatusCode(400)
                     ->setJSON(['success' => false, 'message' => 'Customer dengan telepon atau email tersebut sudah terdaftar. Silakan gunakan menu Edit untuk memperbarui data.']);
             }
-            
+
             // Insert new customer
             if (!$this->customerModel->insert($input)) {
                 return $this->response
                     ->setStatusCode(400)
                     ->setJSON(['success' => false, 'message' => 'Gagal menyimpan customer: ' . implode(', ', $this->customerModel->errors())]);
             }
-            
+
             $idCustomer = (int) $this->customerModel->getInsertID();
 
             // At this point we have $idCustomer (either updated existing or newly created)
-            
+
             if (!empty($items)) {
                 // SIMPLE LOCK: Cegah double submit dengan cache lock
                 $cache = \Config\Services::cache();
-                $lockKey = 'create_order_'.$idCustomer.'_'.md5(json_encode($items));
-                
+                $lockKey = 'create_order_' . $idCustomer . '_' . md5(json_encode($items));
+
                 if ($cache && $cache->get($lockKey)) {
                     // Sedang diproses atau baru saja diproses
                     return $this->response->setJSON(['success' => true, 'message' => 'Pesanan sedang diproses...', 'url' => base_url('customer')]);
                 }
-                
+
                 // Set lock untuk 10 detik
                 $cache && $cache->save($lockKey, 1, 10);
-                
+
                 // Build transaction data
                 $db = \Config\Database::connect();
-                $total = 0; $itemsData = [];
+                $total = 0;
+                $itemsData = [];
+
+                // Validasi stok terlebih dahulu
                 foreach ($items as $it) {
-                    $total += (float)($it['subtotal'] ?? 0);
+                    $pid = (int) ($it['id_product'] ?? 0);
+                    $qty = (int) ($it['qty'] ?? 0);
+                    if ($pid > 0 && $qty > 0) {
+                        $p = $byId[$pid] ?? null;
+                        $stokTersedia = (int) ($p['qty'] ?? 0);
+                        if ($qty > $stokTersedia) {
+                            return $this->response
+                                ->setStatusCode(400)
+                                ->setJSON(['success' => false, 'message' => 'Stok tidak cukup untuk "' . ($p['name'] ?? 'Produk') . '". Stok tersedia: ' . $stokTersedia . ', qty diminta: ' . $qty]);
+                        }
+                    }
+                }
+
+                foreach ($items as $it) {
+                    $total += (float) ($it['subtotal'] ?? 0);
                     $itemsData[] = [
-                        'id_product' => (int)$it['id_product'],
-                        'qty' => (int)$it['qty'],
-                        'price' => (float)$it['price'],
-                        'subtotal' => (float)$it['subtotal'],
+                        'id_product' => (int) $it['id_product'],
+                        'qty' => (int) $it['qty'],
+                        'price' => (float) $it['price'],
+                        'subtotal' => (float) $it['subtotal'],
                     ];
                 }
-                
-                $trxNo = 'TRX-'.date('Ymd').'-'.str_pad((string)($db->table('transaction')->like('transaction_no','TRX-'.date('Ymd'),'after')->countAllResults()+1),4,'0',STR_PAD_LEFT);
-                
+
+                $trxNo = 'TRX-' . date('Ymd') . '-' . str_pad((string) ($db->table('transaction')->like('transaction_no', 'TRX-' . date('Ymd'), 'after')->countAllResults() + 1), 4, '0', STR_PAD_LEFT);
+
                 $insertData = [
                     'transaction_no' => $trxNo,
                     'id_customer' => $idCustomer,
@@ -155,21 +175,21 @@ class CustomerController extends BaseController
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ];
-                
+
                 $db->table('transaction')->insert($insertData);
                 $idTrx = $db->insertID();
 
                 // Kurangi stok SEKALI SAJA
                 $tx = new \App\Models\StockTransactionModel();
                 foreach ($itemsData as $it) {
-                    $pid = (int)($it['id_product'] ?? 0);
-                    $qty = (int)($it['qty'] ?? 0);
+                    $pid = (int) ($it['id_product'] ?? 0);
+                    $qty = (int) ($it['qty'] ?? 0);
                     if ($pid > 0 && $qty > 0) {
                         $tx->recordTransaction($pid, 'out', $qty, 'transaction', $idTrx, 'Order dari create customer');
                     }
                 }
-                
-                return $this->response->setJSON(['success' => true, 'message' => 'Customer & pesanan dibuat. Lanjutkan buat invoice.', 'url' => base_url('invoice/create-from-transaction/'.$idTrx)]);
+
+                return $this->response->setJSON(['success' => true, 'message' => 'Customer & pesanan dibuat. Lanjutkan buat invoice.', 'url' => base_url('invoice/create-from-transaction/' . $idTrx)]);
             }
 
             return $this->response->setJSON(['success' => true, 'message' => 'Customer dibuat. Silakan buat pesanan.', 'url' => '/customer']);
@@ -200,13 +220,15 @@ class CustomerController extends BaseController
             $invoiceIds = array_column($invoices, 'id_invoice');
             $in = implode(',', array_fill(0, count($invoiceIds), '?'));
             $rows = $db->query("SELECT id_invoice, SUM(amount) as total_paid FROM payment WHERE id_invoice IN ($in) GROUP BY id_invoice", $invoiceIds)->getResultArray();
-            foreach ($rows as $r) { $paymentsByInvoice[$r['id_invoice']] = (float)$r['total_paid']; }
+            foreach ($rows as $r) {
+                $paymentsByInvoice[$r['id_invoice']] = (float) $r['total_paid'];
+            }
         }
         // Attach computed fields expected by view
         foreach ($invoices as &$inv) {
             $inv['total_paid'] = $paymentsByInvoice[$inv['id_invoice']] ?? 0.0;
             // derive status
-            $amt = (float)($inv['amount'] ?? 0);
+            $amt = (float) ($inv['amount'] ?? 0);
             if ($inv['status'] === 'void') {
                 // keep void
             } else if ($inv['total_paid'] >= $amt && $amt > 0) {
@@ -246,11 +268,13 @@ class CustomerController extends BaseController
             $invoiceIds = array_column($invoices, 'id_invoice');
             $in = implode(',', array_fill(0, count($invoiceIds), '?'));
             $rows = $db->query("SELECT id_invoice, SUM(amount) as total_paid FROM payment WHERE id_invoice IN ($in) GROUP BY id_invoice", $invoiceIds)->getResultArray();
-            foreach ($rows as $r) { $paymentsByInvoice[$r['id_invoice']] = (float)$r['total_paid']; }
+            foreach ($rows as $r) {
+                $paymentsByInvoice[$r['id_invoice']] = (float) $r['total_paid'];
+            }
         }
         foreach ($invoices as &$inv) {
             $inv['total_paid'] = $paymentsByInvoice[$inv['id_invoice']] ?? 0.0;
-            $amt = (float)($inv['amount'] ?? 0);
+            $amt = (float) ($inv['amount'] ?? 0);
             if ($inv['status'] === 'void') {
                 // keep void
             } else if ($inv['total_paid'] >= $amt && $amt > 0) {
@@ -269,7 +293,7 @@ class CustomerController extends BaseController
             $produk = [];
 
             // Simpan hanya produk yang diberi harga (menggambarkan produk yang dibeli/ditetapkan)
-            $products = $this->productModel->where('active', 1)->orderBy('name','ASC')->findAll();
+            $products = $this->productModel->where('active', 1)->orderBy('name', 'ASC')->findAll();
             foreach ($products as $p) {
                 $price = $this->request->getPost('harga_' . $p['id_product']);
                 if ($price !== null && $price !== '') {
@@ -289,8 +313,8 @@ class CustomerController extends BaseController
                 'kelurahan' => $this->request->getPost('kelurahan'),
                 'kodepos' => $this->request->getPost('kodepos'),
                 'alamat' => $this->request->getPost('alamat'),
-                    'produk' => json_encode($produk),
-                    'order_items' => $this->request->getPost('order_items'),
+                'produk' => json_encode($produk),
+                'order_items' => $this->request->getPost('order_items'),
             ];
 
             // Input Telepon - validate uniqueness if changed
@@ -300,11 +324,11 @@ class CustomerController extends BaseController
                 $existing = $this->customerModel->where('telepon', $inputtelepon)
                     ->where('id_customer !=', $id)
                     ->first();
-                
+
                 if ($existing) {
                     return $this->response->setJSON(['success' => false, 'message' => ['telepon' => 'Telepon sudah terdaftar']]);
                 }
-                
+
                 $input['telepon'] = $inputtelepon;
             } else {
                 $input['telepon'] = $data['customer']['telepon'];
@@ -317,11 +341,11 @@ class CustomerController extends BaseController
                 $existing = $this->customerModel->where('email', $inputemail)
                     ->where('id_customer !=', $id)
                     ->first();
-                
+
                 if ($existing) {
                     return $this->response->setJSON(['success' => false, 'message' => ['email' => 'Email sudah terdaftar']]);
                 }
-                
+
                 $input['email'] = $inputemail;
             } else {
                 $input['email'] = $data['customer']['email'];
@@ -347,12 +371,12 @@ class CustomerController extends BaseController
         $customer = $this->customerModel
             ->select('id_customer, nama, produk')
             ->where('id_customer', $id)->first();
-        
+
         if ($customer) {
             // Parse produk JSON and get product details
             $produkData = json_decode($customer['produk'], true) ?: [];
             $products = [];
-            
+
             foreach ($produkData as $productId => $data) {
                 $products[] = [
                     'id' => $productId,
@@ -360,10 +384,10 @@ class CustomerController extends BaseController
                     'price' => $data['price']
                 ];
             }
-            
+
             $customer['products'] = $products;
         }
-        
+
         return $this->response->setJSON($customer);
     }
 
@@ -379,7 +403,8 @@ class CustomerController extends BaseController
     {
         $db = \Config\Database::connect();
         $customer = $this->customerModel->find($id);
-        if(!$customer) return redirect()->to('/customer');
+        if (!$customer)
+            return redirect()->to('/customer');
 
         // invoices by customer's transactions
         $invoices = $db->query("
@@ -410,8 +435,8 @@ class CustomerController extends BaseController
         ", [$id])->getResultArray();
 
         $summary = [
-            'invoiced' => array_sum(array_map(fn($i)=> (float)$i['amount'], $invoices)),
-            'paid' => array_sum(array_map(fn($p)=> (float)$p['amount'], $payments)),
+            'invoiced' => array_sum(array_map(fn($i) => (float) $i['amount'], $invoices)),
+            'paid' => array_sum(array_map(fn($p) => (float) $p['amount'], $payments)),
         ];
 
         return view('pages/customer/transactions', [
@@ -426,7 +451,8 @@ class CustomerController extends BaseController
     public function order($id)
     {
         $customer = $this->customerModel->find($id);
-        if(!$customer) return redirect()->to('/customer');
+        if (!$customer)
+            return redirect()->to('/customer');
 
         if ($this->request->getMethod() === 'POST') {
             $items = $this->request->getPost('items'); // JSON string
@@ -442,27 +468,40 @@ class CustomerController extends BaseController
 
             // SIMPLE LOCK: Cegah double submit dengan cache lock
             $cache = \Config\Services::cache();
-            $lockKey = 'order_'.$id.'_'.md5(json_encode($items));
-            
+            $lockKey = 'order_' . $id . '_' . md5(json_encode($items));
+
             if ($cache && $cache->get($lockKey)) {
                 // Sedang diproses atau baru saja diproses
                 return $this->response->setJSON(['success' => true, 'message' => 'Pesanan sedang diproses...', 'url' => base_url('customer')]);
             }
-            
+
             // Set lock untuk 10 detik
             $cache && $cache->save($lockKey, 1, 10);
-            
+
             $db = \Config\Database::connect();
             $productModel = $this->productModel;
-            $total = 0; $itemsData = [];
-            
+            $total = 0;
+            $itemsData = [];
+
             foreach ($items as $it) {
-                $pid = (int)($it['id_product'] ?? 0);
-                $qty = (int)($it['qty'] ?? 0);
-                $price = (float)($it['price'] ?? 0);
-                if ($pid<=0 || $qty<=0) continue;
+                $pid = (int) ($it['id_product'] ?? 0);
+                $qty = (int) ($it['qty'] ?? 0);
+                $price = (float) ($it['price'] ?? 0);
+                if ($pid <= 0 || $qty <= 0)
+                    continue;
                 $p = $productModel->find($pid);
-                if (!$p) continue;
+                if (!$p)
+                    continue;
+
+                // Validasi stok
+                $stokTersedia = (int) ($p['qty'] ?? 0);
+                if ($qty > $stokTersedia) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Stok tidak cukup untuk "' . $p['name'] . '". Stok tersedia: ' . $stokTersedia . ', qty diminta: ' . $qty
+                    ]);
+                }
+
                 $subtotal = $qty * $price;
                 $total += $subtotal;
                 $itemsData[] = [
@@ -474,13 +513,13 @@ class CustomerController extends BaseController
                     'subtotal' => $subtotal
                 ];
             }
-            
+
             if (empty($itemsData)) {
                 return $this->response->setJSON(['success' => false, 'message' => 'Item pesanan tidak valid']);
             }
 
-            $trxNo = 'TRX-'.date('Ymd').'-'.str_pad((string)($db->table('transaction')->like('transaction_no','TRX-'.date('Ymd'),'after')->countAllResults()+1),4,'0',STR_PAD_LEFT);
-            
+            $trxNo = 'TRX-' . date('Ymd') . '-' . str_pad((string) ($db->table('transaction')->like('transaction_no', 'TRX-' . date('Ymd'), 'after')->countAllResults() + 1), 4, '0', STR_PAD_LEFT);
+
             $insertData = [
                 'transaction_no' => $trxNo,
                 'id_customer' => $id,
@@ -491,25 +530,25 @@ class CustomerController extends BaseController
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
-            
+
             $db->table('transaction')->insert($insertData);
             $idTrx = $db->insertID();
 
             // Kurangi stok SEKALI SAJA
             $tx = new \App\Models\StockTransactionModel();
             foreach ($itemsData as $it) {
-                $pid = (int)($it['id_product'] ?? 0);
-                $qty = (int)($it['qty'] ?? 0);
+                $pid = (int) ($it['id_product'] ?? 0);
+                $qty = (int) ($it['qty'] ?? 0);
                 if ($pid > 0 && $qty > 0) {
                     $tx->recordTransaction($pid, 'out', $qty, 'transaction', $idTrx, 'Order dari halaman order');
                 }
             }
 
-            return $this->response->setJSON(['success' => true, 'message' => 'Pesanan dibuat. Lanjutkan buat invoice.', 'url' => base_url('invoice/create-from-transaction/'.$idTrx)]);
+            return $this->response->setJSON(['success' => true, 'message' => 'Pesanan dibuat. Lanjutkan buat invoice.', 'url' => base_url('invoice/create-from-transaction/' . $idTrx)]);
         }
 
         // Siapkan produk + harga khusus customer
-        $products = $this->productModel->where('active',1)->orderBy('name','ASC')->findAll();
+        $products = $this->productModel->where('active', 1)->orderBy('name', 'ASC')->findAll();
         $custProducts = json_decode($customer['produk'] ?? '[]', true) ?: [];
         foreach ($products as &$p) {
             $p['customer_price'] = $custProducts[$p['id_product']]['price'] ?? $p['price'];
@@ -529,9 +568,10 @@ class CustomerController extends BaseController
         $customer = $this->customerModel
             ->join('rute', 'customer.kode_rute = rute.kode_rute', 'left')
             ->find($id);
-        if(!$customer) return redirect()->to('/customer');
+        if (!$customer)
+            return redirect()->to('/customer');
 
-    if ($this->request->getMethod() === 'POST') {
+        if ($this->request->getMethod() === 'POST') {
             $items = $this->request->getPost('items'); // JSON string
             if (is_string($items)) {
                 $decoded = json_decode($items, true);
@@ -545,8 +585,8 @@ class CustomerController extends BaseController
 
             // SIMPLE LOCK: Cegah double submit dengan cache lock
             $cache = \Config\Services::cache();
-            $lockKey = 'order_again_'.$id.'_'.md5(json_encode($items));
-            
+            $lockKey = 'order_again_' . $id . '_' . md5(json_encode($items));
+
             if ($cache && $cache->get($lockKey)) {
                 // Sedang diproses atau baru saja diproses
                 $url = base_url('customer');
@@ -555,21 +595,35 @@ class CustomerController extends BaseController
                 }
                 return redirect()->to($url);
             }
-            
+
             // Set lock untuk 10 detik
             $cache && $cache->save($lockKey, 1, 10);
-            
+
             $db = \Config\Database::connect();
             $productModel = $this->productModel;
-            $total = 0; $itemsData = [];
-            
+            $total = 0;
+            $itemsData = [];
+
             foreach ($items as $it) {
-                $pid = (int)($it['id_product'] ?? 0);
-                $qty = (int)($it['qty'] ?? 0);
-                $price = (float)($it['price'] ?? 0);
-                if ($pid<=0 || $qty<=0) continue;
+                $pid = (int) ($it['id_product'] ?? 0);
+                $qty = (int) ($it['qty'] ?? 0);
+                $price = (float) ($it['price'] ?? 0);
+                if ($pid <= 0 || $qty <= 0)
+                    continue;
                 $p = $productModel->find($pid);
-                if (!$p) continue;
+                if (!$p)
+                    continue;
+
+                // Validasi stok
+                $stokTersedia = (int) ($p['qty'] ?? 0);
+                if ($qty > $stokTersedia) {
+                    $errorMsg = 'Stok tidak cukup untuk "' . $p['name'] . '". Stok tersedia: ' . $stokTersedia . ', qty diminta: ' . $qty;
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setJSON(['success' => false, 'message' => $errorMsg]);
+                    }
+                    return redirect()->back()->with('error', $errorMsg);
+                }
+
                 $subtotal = $qty * $price;
                 $total += $subtotal;
                 $itemsData[] = [
@@ -581,13 +635,13 @@ class CustomerController extends BaseController
                     'subtotal' => $subtotal
                 ];
             }
-            
+
             if (empty($itemsData)) {
                 return $this->response->setJSON(['success' => false, 'message' => 'Item pesanan tidak valid']);
             }
 
-            $trxNo = 'TRX-'.date('Ymd').'-'.str_pad((string)($db->table('transaction')->like('transaction_no','TRX-'.date('Ymd'),'after')->countAllResults()+1),4,'0',STR_PAD_LEFT);
-            
+            $trxNo = 'TRX-' . date('Ymd') . '-' . str_pad((string) ($db->table('transaction')->like('transaction_no', 'TRX-' . date('Ymd'), 'after')->countAllResults() + 1), 4, '0', STR_PAD_LEFT);
+
             $insertData = [
                 'transaction_no' => $trxNo,
                 'id_customer' => $id,
@@ -598,22 +652,22 @@ class CustomerController extends BaseController
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
-            
+
             $db->table('transaction')->insert($insertData);
             $idTrx = $db->insertID();
 
             // Kurangi stok SEKALI SAJA
             $tx = new \App\Models\StockTransactionModel();
             foreach ($itemsData as $it) {
-                $pid = (int)($it['id_product'] ?? 0);
-                $qty = (int)($it['qty'] ?? 0);
+                $pid = (int) ($it['id_product'] ?? 0);
+                $qty = (int) ($it['qty'] ?? 0);
                 if ($pid > 0 && $qty > 0) {
                     $tx->recordTransaction($pid, 'out', $qty, 'transaction', $idTrx, 'Order ulang');
                 }
             }
 
             // Jika request AJAX, kembalikan JSON; jika bukan, redirect standar
-            $url = base_url('invoice/create-from-transaction/'.$idTrx);
+            $url = base_url('invoice/create-from-transaction/' . $idTrx);
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
                     'success' => true,
@@ -625,7 +679,7 @@ class CustomerController extends BaseController
         }
 
         // Produk + harga khusus
-        $products = $this->productModel->where('active',1)->orderBy('name','ASC')->findAll();
+        $products = $this->productModel->where('active', 1)->orderBy('name', 'ASC')->findAll();
         $custProducts = json_decode($customer['produk'] ?? '[]', true) ?: [];
         foreach ($products as &$p) {
             $p['customer_price'] = $custProducts[$p['id_product']]['price'] ?? $p['price'];
@@ -647,12 +701,13 @@ class CustomerController extends BaseController
             ->select('customer.*, rute.nama_wilayah')
             ->join('rute', 'customer.kode_rute = rute.kode_rute', 'left')
             ->find($id);
-        if(!$customer) return $this->response->setStatusCode(404)->setBody('Not found');
+        if (!$customer)
+            return $this->response->setStatusCode(404)->setBody('Not found');
 
         // Ambil foto terbaru dari pengiriman untuk customer ini (jika ada)
         $pengirimanModel = new \App\Models\PengirimanModel();
         $latestPg = $pengirimanModel
-            ->where('id_customer', (int)$id)
+            ->where('id_customer', (int) $id)
             ->orderBy('tanggal', 'DESC')
             ->first();
 
