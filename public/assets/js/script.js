@@ -56,12 +56,18 @@ $(function () {
 	// Form Input
 	$("form").submit(function (e) {
 		const form = $(this);
-		
+
+		// Skip forms that have their own custom handlers
+		const formsWithCustomHandlers = ['formCreateCustomer', 'formOrder', 'formOrderAgain'];
+		if (formsWithCustomHandlers.includes(form.attr('id'))) {
+			return; // Let the custom handler in the page handle this
+		}
+
 		// Skip AJAX handling for GET forms (allow native browser submission)
 		if (form.attr("method")?.toLowerCase() === "get") {
 			return true;
 		}
-		
+
 		e.preventDefault();
 		const inputType =
 			form.attr("enctype") === "multipart/form-data"
@@ -92,7 +98,7 @@ $(function () {
 					});
 				} else {
 					let errorMessage = "";
-					
+
 					if (Array.isArray(response.message)) {
 						// Handling array of messages
 						errorMessage = response.message.map((msg) => `<li>${msg}</li>`).join("");
@@ -130,13 +136,7 @@ $(function () {
 					response = { message: xhr.responseText };
 				}
 				console.error('AJAX error:', response, status, error);
-				Swal.fire({
-					icon: "error",
-					title: "Error",
-					html: `<ul class=\"list-unstyled\"><li>${response.message || 'Terjadi kesalahan pada server'}</li></ul>`,
-					confirmButtonText: "OK",
-					timer: 2000
-				});
+				// Silent fail - no alert shown
 			},
 		});
 	});
