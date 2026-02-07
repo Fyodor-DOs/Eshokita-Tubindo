@@ -64,7 +64,7 @@ $role = current_role() ?? 'guest';
     <?php if (in_array($role, ["admin", "super-admin", "produksi"])) : ?>
     <!-- Keuangan -->
     <li class="nav-item">
-        <a class="nav-link <?= in_array($segment, ['invoice', 'payment']) ? 'bg-primary active' : '' ?>"
+        <a class="nav-link <?= ($segment === 'invoice') ? 'bg-primary active' : '' ?>"
             href="<?= base_url('/invoice') ?>">
             <i class="bi bi-cash-coin"></i> Pembayaran
         </a>

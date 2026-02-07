@@ -1,15 +1,15 @@
 <?= $this->extend('layouts/dashboard') ?>
 <?= $this->section('content') ?>
-<?= view('components/Breadcrumb', ['segment1' => 'payment', 'segment2' => $invoice['invoice_no']]) ?>
+<?= view('components/Breadcrumb', ['segment1' => 'invoice', 'segment2' => $invoice['invoice_no']]) ?>
 <div class="card">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h5 class="mb-0">Riwayat Pembayaran - <?= esc($invoice['invoice_no']) ?></h5>
       <div class="btn-group">
-        <a class="btn btn-info" href="<?= base_url('/payment/detail/' . $invoice['id_invoice']) ?>">
+        <a class="btn btn-info" href="<?= base_url('/invoice/detail/' . $invoice['id_invoice']) ?>">
           <i class="bi bi-eye"></i> Lihat Detail
         </a>
-        <a class="btn btn-success" href="<?= base_url('/payment/create/' . $invoice['id_invoice']) ?>">
+        <a class="btn btn-success" href="<?= base_url('/invoice/create/' . $invoice['id_invoice']) ?>">
           <i class="bi bi-plus-circle"></i> Tambah Pembayaran
         </a>
         <a class="btn btn-secondary" href="<?= base_url('/invoice') ?>">
@@ -60,10 +60,23 @@
                     'ewallet' => 'E-Wallet',
                     'other' => 'Lainnya'
                   ];
+                  // Parse provider detail from note
+                  $providerDetail = '';
+                  $pNote = $p['note'] ?? '';
+                  if (preg_match('/Bank:\s*([^|]+)/i', $pNote, $m)) {
+                      $providerDetail = trim($m[1]);
+                  } elseif (preg_match('/E-Wallet:\s*([^|]+)/i', $pNote, $m)) {
+                      $providerDetail = trim($m[1]);
+                  } elseif (preg_match('/Provider:\s*([^|]+)/i', $pNote, $m)) {
+                      $providerDetail = trim($m[1]);
+                  }
                   ?>
                   <span class="badge bg-<?= $methodBadge[$p['method']] ?? 'secondary' ?>">
                     <?= $methodLabel[$p['method']] ?? ucfirst($p['method']) ?>
                   </span>
+                  <?php if ($providerDetail): ?>
+                    <br><small class="text-muted"><?= esc($providerDetail) ?></small>
+                  <?php endif; ?>
                 </td>
                 <td class="text-end"><strong>Rp <?= number_format((float) $p['amount'], 0, ',', '.') ?></strong></td>
                 <td>
@@ -76,7 +89,16 @@
                     <span class="text-muted">-</span>
                   <?php endif; ?>
                 </td>
-                <td><?= esc($p['note']) ?: '-' ?></td>
+                <td>
+                  <?php
+                  $displayNote = $p['note'] ?? '';
+                  $displayNote = preg_replace('/\s*(E-Wallet|Bank|Provider):\s*[^|]+\|?/i', '', $displayNote);
+                  $displayNote = preg_replace('/\s*Pembayaran via \w+\s*\|?/i', '', $displayNote);
+                  $displayNote = preg_replace('/\s*Ref:\s*\S+/i', '', $displayNote);
+                  $displayNote = trim($displayNote, ' |');
+                  echo esc($displayNote) ?: '-';
+                  ?>
+                </td>
               </tr>
             <?php endforeach; ?>
           </tbody>

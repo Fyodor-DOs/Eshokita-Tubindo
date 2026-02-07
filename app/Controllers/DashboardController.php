@@ -34,10 +34,7 @@ class DashboardController extends BaseController
         // Get counts within the selected month
         [$year, $mon] = explode('-', $month);
 
-        $pengirimanCount = $this->pengirimanModel
-            ->where('YEAR(tanggal)', (int)$year)
-            ->where('MONTH(tanggal)', (int)$mon)
-            ->countAllResults();
+        $pengirimanCount = $this->pengirimanModel->countAllResults();
 
         $rekapData = $this->getRekapPenjualan((int)$year, (int)$mon);
 
@@ -66,13 +63,28 @@ class DashboardController extends BaseController
 
         $month = $this->request->getGet('month') ?: date('Y-m');
         [$year, $mon] = explode('-', $month);
-        
-        $rekapData = $this->getRekapPenjualan((int)$year, (int)$mon);
-        
-        return $this->response->setJSON([
-            'cash' => $rekapData['totals']['cash'] ?? 0,
-            'kredit' => $rekapData['totals']['kredit'] ?? 0
-        ]);
+
+        // Query langsung dari tabel payment untuk semua metode pada bulan ini
+        $payments = $this->db->table('payment p')
+            ->select('p.method, SUM(p.amount) as total')
+            ->join('invoice i', 'i.id_invoice = p.id_invoice')
+            ->where('YEAR(i.issue_date)', (int)$year)
+            ->where('MONTH(i.issue_date)', (int)$mon)
+            ->groupBy('p.method')
+            ->get()->getResultArray();
+
+        $methods = ['cash' => 0, 'qris' => 0, 'va' => 0, 'ewallet' => 0];
+        foreach ($payments as $p) {
+            $m = strtolower($p['method']);
+            if (isset($methods[$m])) {
+                $methods[$m] += (float) $p['total'];
+            } else {
+                // kredit, transfer, other → masuk ke cash
+                $methods['cash'] += (float) $p['total'];
+            }
+        }
+
+        return $this->response->setJSON($methods);
     }
 
     public function getChartProductDistribution()
@@ -220,8 +232,7 @@ class DashboardController extends BaseController
             $paymentsGrouped[$p['id_invoice']][$p['method']] = (float)$p['total_method'];
         }
 
-        $rowsCash = [];
-        $rowsKredit = [];
+        $allRows = [];
 
         // Get all products with their details (category, unit/weight)
         $products = $this->db->table('product p')
@@ -247,7 +258,9 @@ class DashboardController extends BaseController
 
         $totals = [
             'cash' => 0.0,
-            'kredit' => 0.0,
+            'qris' => 0.0,
+            'va' => 0.0,
+            'ewallet' => 0.0,
             'grand' => 0.0,
             'total_hrg' => 0.0,
         ];
@@ -299,20 +312,38 @@ class DashboardController extends BaseController
                 }
             }
 
-            // Determine payment classification
-            $cashPaid   = $paymentsGrouped[$inv['id_invoice']]['cash']   ?? 0.0;
-            $kreditPaid = $paymentsGrouped[$inv['id_invoice']]['kredit'] ?? 0.0;
+            // Determine payment classification - 4 methods: cash, qris, va, ewallet
+            $invPayments = $paymentsGrouped[$inv['id_invoice']] ?? [];
+            $cashPaid     = (float)($invPayments['cash'] ?? 0);
+            $qrisPaid     = (float)($invPayments['qris'] ?? 0);
+            $vaPaid       = (float)($invPayments['va'] ?? 0);
+            $ewalletPaid  = (float)($invPayments['ewallet'] ?? 0);
+            // kredit, transfer, other → digabung ke cash
+            $cashPaid    += (float)($invPayments['kredit'] ?? 0);
+            $cashPaid    += (float)($invPayments['transfer'] ?? 0);
+            $cashPaid    += (float)($invPayments['other'] ?? 0);
+
+            $totalPaidAll = $cashPaid + $qrisPaid + $vaPaid + $ewalletPaid;
             // If no payment yet, fall back to pengiriman.pembayaran flag
-            if ($cashPaid == 0 && $kreditPaid == 0) {
+            if ($totalPaidAll == 0) {
                 $flag = strtolower($inv['pg_pembayaran'] ?? '');
-                if ($flag === 'cash') { $cashPaid = $hrg; }
-                elseif ($flag === 'kredit') { $kreditPaid = $hrg; }
+                if ($flag === 'cash' || $flag === 'kredit') { $cashPaid = $hrg; }
             }
 
-            $totals['cash']   += $cashPaid;
-            $totals['kredit'] += $kreditPaid;
-            $totals['grand']  += $hrg;
+            $totals['cash']     += $cashPaid;
+            $totals['qris']     += $qrisPaid;
+            $totals['va']       += $vaPaid;
+            $totals['ewallet']  += $ewalletPaid;
+            $totals['grand']    += $hrg;
             $totals['total_hrg'] += $hrg;
+
+            // Determine dominant method for this invoice
+            $paidAmounts = ['cash' => $cashPaid, 'qris' => $qrisPaid, 'va' => $vaPaid, 'ewallet' => $ewalletPaid];
+            $dominantMethod = 'cash';
+            $maxPaid = 0;
+            foreach ($paidAmounts as $mk => $mv) {
+                if ($mv > $maxPaid) { $maxPaid = $mv; $dominantMethod = $mk; }
+            }
 
             $row = [
                 'nota'    => $inv['invoice_no'],
@@ -325,16 +356,14 @@ class DashboardController extends BaseController
                 'jumlah'  => $totalQty,
                 'hrg'     => number_format($hrg,0,',','.'),
                 'cash'    => $cashPaid ? number_format($cashPaid,0,',','.') : '',
-                'kredit'  => $kreditPaid ? number_format($kreditPaid,0,',','.') : '',
+                'qris'    => $qrisPaid ? number_format($qrisPaid,0,',','.') : '',
+                'va'      => $vaPaid ? number_format($vaPaid,0,',','.') : '',
+                'ewallet' => $ewalletPaid ? number_format($ewalletPaid,0,',','.') : '',
                 'ket'     => '',
+                'method'  => $dominantMethod,
             ];
 
-            // Categorize row: if any kredit amount then kredit else cash
-            if ($kreditPaid > 0 && $cashPaid == 0) {
-                $rowsKredit[] = $row;
-            } else {
-                $rowsCash[] = $row; // mixed or pure cash are listed under cash for now
-            }
+            $allRows[] = $row;
         }
 
         // Get all unique variants for table headers
@@ -352,7 +381,7 @@ class DashboardController extends BaseController
         }
 
         return [
-            'rows' => [ 'cash' => $rowsCash, 'kredit' => $rowsKredit ],
+            'rows' => $allRows,
             'summary' => $summary,
             'totals' => $totals,
             'variants' => $variantsList,
@@ -402,7 +431,7 @@ class DashboardController extends BaseController
         // Generate PDF
         $dompdf = new \Dompdf\Dompdf(['isRemoteEnabled' => true]);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
 
         $filename = 'Rekap_Penjualan_' . date('Ymd', strtotime($date)) . '.pdf';

@@ -10,8 +10,17 @@
             <div class="card-header bg-white">Total Penjualan Bulan Ini</div>
             <div class="card-body">
                 <h4 class="text-primary">Rp <?= number_format($rekap_totals['grand'] ?? 0, 0, ',', '.') ?></h4>
-                <small class="text-muted">Cash: Rp <?= number_format($rekap_totals['cash'] ?? 0, 0, ',', '.') ?><br>
-                Kredit: Rp <?= number_format($rekap_totals['kredit'] ?? 0, 0, ',', '.') ?></small>
+                <small class="text-muted">
+                    <?php
+                    $methodSummary = [];
+                    $methodNames = ['cash'=>'Cash','qris'=>'QRIS','va'=>'VA','ewallet'=>'E-Wallet'];
+                    foreach ($methodNames as $k => $label) {
+                        $val = $rekap_totals[$k] ?? 0;
+                        if ($val > 0) $methodSummary[] = $label . ': Rp ' . number_format($val, 0, ',', '.');
+                    }
+                    echo implode('<br>', $methodSummary) ?: 'Belum ada pembayaran';
+                    ?>
+                </small>
             </div>
         </div>
     </div>
@@ -92,6 +101,7 @@
         </form>
 </div>
 
+<?php $colSpan = 10 + count($rekap_variants ?? []); ?>
 <div class="table-responsive mb-4">
     <table class="table table-sm table-bordered align-middle" style="font-size:12px">
         <thead class="table-light">
@@ -104,16 +114,17 @@
                 <?php endforeach; ?>
                 <th style="width:50px">JML</th>
                 <th style="width:80px">HRG</th>
-                <th style="width:80px">CASH</th>
-                <th style="width:80px">KREDIT</th>
-                <th style="width:80px">KET</th>
+                <th style="width:70px">CASH</th>
+                <th style="width:70px">QRIS</th>
+                <th style="width:70px">VA</th>
+                <th style="width:70px">E-WALLET</th>
+                <th style="width:60px">KET</th>
             </tr>
         </thead>
         <tbody>
-            <tr class="table-primary"><td colspan="<?= 8 + count($rekap_variants ?? []) ?>" class="fw-bold">CASH</td></tr>
-            <?php if (empty($rekap['cash'])): ?>
-                <tr><td colspan="<?= 8 + count($rekap_variants ?? []) ?>" class="text-center text-muted">Tidak ada data</td></tr>
-            <?php else: foreach ($rekap['cash'] as $row): ?>
+            <?php if (empty($rekap)): ?>
+                <tr><td colspan="<?= $colSpan ?>" class="text-center text-muted">Tidak ada data</td></tr>
+            <?php else: foreach ($rekap as $row): ?>
                 <tr>
                     <td><?= esc($row['nota']) ?></td>
                     <td><?= esc($row['customer']) ?></td>
@@ -123,27 +134,10 @@
                     <?php endforeach; ?>
                     <td><?= esc($row['jumlah'] ?? '') ?></td>
                     <td><?= esc($row['hrg']) ?></td>
-                    <td><?= esc($row['cash']) ?></td>
-                    <td><?= esc($row['kredit']) ?></td>
-                    <td><?= esc($row['ket']) ?></td>
-                </tr>
-            <?php endforeach; endif; ?>
-
-            <tr class="table-primary"><td colspan="<?= 8 + count($rekap_variants ?? []) ?>" class="fw-bold">KREDIT</td></tr>
-            <?php if (empty($rekap['kredit'])): ?>
-                <tr><td colspan="<?= 8 + count($rekap_variants ?? []) ?>" class="text-center text-muted">Tidak ada data</td></tr>
-            <?php else: foreach ($rekap['kredit'] as $row): ?>
-                <tr>
-                    <td><?= esc($row['nota']) ?></td>
-                    <td><?= esc($row['customer']) ?></td>
-                    <td><?= esc($row['rute'] ?? '-') ?></td>
-                    <?php foreach (($rekap_variants ?? []) as $v): ?>
-                    <td><?= esc(($row['variants'][$v['key']] ?? '') ?: '') ?></td>
-                    <?php endforeach; ?>
-                    <td><?= esc($row['jumlah'] ?? '') ?></td>
-                    <td><?= esc($row['hrg']) ?></td>
-                    <td><?= esc($row['cash']) ?></td>
-                    <td><?= esc($row['kredit']) ?></td>
+                    <td><?= esc($row['cash'] ?? '') ?></td>
+                    <td><?= esc($row['qris'] ?? '') ?></td>
+                    <td><?= esc($row['va'] ?? '') ?></td>
+                    <td><?= esc($row['ewallet'] ?? '') ?></td>
                     <td><?= esc($row['ket']) ?></td>
                 </tr>
             <?php endforeach; endif; ?>
@@ -153,23 +147,37 @@
 
 
 <script>
-// Cash vs Kredit Chart (Bar Chart)
+// Metode Pembayaran Chart (Bar Chart)
 const cashVsKreditCtx = document.getElementById('cashVsKreditChart').getContext('2d');
+const allMethodLabels = ['Cash', 'QRIS', 'VA', 'E-Wallet'];
+const allMethodKeys = ['cash', 'qris', 'va', 'ewallet'];
+const allMethodColors = [
+    'rgba(75, 192, 192, 0.6)',   // Cash - teal
+    'rgba(255, 99, 132, 0.6)',   // QRIS - red
+    'rgba(153, 102, 255, 0.6)',  // VA - purple
+    'rgba(255, 206, 86, 0.6)'   // E-Wallet - yellow
+];
+const allMethodBorders = [
+    'rgba(75, 192, 192, 1)',
+    'rgba(255, 99, 132, 1)',
+    'rgba(153, 102, 255, 1)',
+    'rgba(255, 206, 86, 1)'
+];
+const initialMethodData = [
+    <?= $rekap_totals['cash'] ?? 0 ?>,
+    <?= $rekap_totals['qris'] ?? 0 ?>,
+    <?= $rekap_totals['va'] ?? 0 ?>,
+    <?= $rekap_totals['ewallet'] ?? 0 ?>
+];
 const cashVsKreditChart = new Chart(cashVsKreditCtx, {
     type: 'bar',
     data: {
-        labels: ['Cash', 'Kredit'],
+        labels: allMethodLabels,
         datasets: [{
             label: 'Total Penjualan (Rp)',
-            data: [<?= $rekap_totals['cash'] ?? 0 ?>, <?= $rekap_totals['kredit'] ?? 0 ?>],
-            backgroundColor: [
-                'rgba(75, 192, 192, 0.6)',
-                'rgba(255, 159, 64, 0.6)'
-            ],
-            borderColor: [
-                'rgba(75, 192, 192, 1)',
-                'rgba(255, 159, 64, 1)'
-            ],
+            data: initialMethodData,
+            backgroundColor: allMethodColors,
+            borderColor: allMethodBorders,
             borderWidth: 1
         }]
     },
@@ -312,7 +320,7 @@ document.getElementById('filterCashVsKredit').addEventListener('change', functio
     fetch(`<?= site_url('dashboard/chart/cash-vs-kredit') ?>?month=${month}`)
         .then(response => response.json())
         .then(data => {
-            cashVsKreditChart.data.datasets[0].data = [data.cash, data.kredit];
+            cashVsKreditChart.data.datasets[0].data = allMethodKeys.map(k => data[k] || 0);
             cashVsKreditChart.update();
         });
 });

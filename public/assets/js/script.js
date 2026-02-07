@@ -58,7 +58,7 @@ $(function () {
 		const form = $(this);
 
 		// Skip forms that have their own custom handlers
-		const formsWithCustomHandlers = ['formCreateCustomer', 'formOrder', 'formOrderAgain'];
+		const formsWithCustomHandlers = ['formCreateCustomer', 'formOrder', 'formOrderAgain', 'cash-form'];
 		if (formsWithCustomHandlers.includes(form.attr('id'))) {
 			return; // Let the custom handler in the page handle this
 		}

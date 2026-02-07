@@ -1,6 +1,6 @@
 <?= $this->extend('layouts/dashboard') ?>
 <?= $this->section('content') ?>
-<?= view('components/Breadcrumb', ['segment1' => 'payment', 'segment2' => 'create', 'segment3' => $invoice['invoice_no']]) ?>
+<?= view('components/Breadcrumb', ['segment1' => 'invoice', 'segment2' => 'create', 'segment3' => $invoice['invoice_no']]) ?>
 
 <?php
 $total = (float) $invoice['amount'];
@@ -174,29 +174,49 @@ $outstanding = max(0, $total - $paid);
                 <div class="modal-body">
                     <p class="text-muted mb-3">Pilih bank untuk Virtual Account:</p>
                     <div class="list-group" id="bank-list">
-                        <label class="list-group-item list-group-item-action d-flex align-items-center">
+                        <label class="list-group-item list-group-item-action d-flex align-items-center py-3">
                             <input type="radio" name="selected_bank" value="bca" class="d-none">
-                            <img src="<?= base_url('assets/image/bca.svg') ?>" alt="BCA" height="28" class="me-3">
-                            <span>BCA Virtual Account</span>
-                            <i class="bi bi-check-circle-fill text-success ms-auto bank-check" style="display:none;"></i>
+                            <img src="<?= base_url('assets/image/bca.svg') ?>" alt="BCA" height="28"
+                                style="width: 60px; object-fit: contain;">
+                            <div class="ms-3">
+                                <div class="fw-bold">BCA Virtual Account</div>
+                                <small class="text-muted">Bank Central Asia</small>
+                            </div>
+                            <i class="bi bi-check-circle-fill text-success ms-auto bank-check"
+                                style="display:none; font-size: 1.2rem;"></i>
                         </label>
-                        <label class="list-group-item list-group-item-action d-flex align-items-center">
+                        <label class="list-group-item list-group-item-action d-flex align-items-center py-3">
                             <input type="radio" name="selected_bank" value="bni" class="d-none">
-                            <img src="<?= base_url('assets/image/bni.png') ?>" alt="BNI" height="28" class="me-3">
-                            <span>BNI Virtual Account</span>
-                            <i class="bi bi-check-circle-fill text-success ms-auto bank-check" style="display:none;"></i>
+                            <img src="<?= base_url('assets/image/bni.png') ?>" alt="BNI" height="28"
+                                style="width: 60px; object-fit: contain;">
+                            <div class="ms-3">
+                                <div class="fw-bold">BNI Virtual Account</div>
+                                <small class="text-muted">Bank Negara Indonesia</small>
+                            </div>
+                            <i class="bi bi-check-circle-fill text-success ms-auto bank-check"
+                                style="display:none; font-size: 1.2rem;"></i>
                         </label>
-                        <label class="list-group-item list-group-item-action d-flex align-items-center">
+                        <label class="list-group-item list-group-item-action d-flex align-items-center py-3">
                             <input type="radio" name="selected_bank" value="mandiri" class="d-none">
-                            <img src="<?= base_url('assets/image/mandiri.png') ?>" alt="Mandiri" height="28" class="me-3">
-                            <span>Mandiri Virtual Account</span>
-                            <i class="bi bi-check-circle-fill text-success ms-auto bank-check" style="display:none;"></i>
+                            <img src="<?= base_url('assets/image/mandiri.png') ?>" alt="Mandiri" height="28"
+                                style="width: 60px; object-fit: contain;">
+                            <div class="ms-3">
+                                <div class="fw-bold">Mandiri Virtual Account</div>
+                                <small class="text-muted">Bank Mandiri</small>
+                            </div>
+                            <i class="bi bi-check-circle-fill text-success ms-auto bank-check"
+                                style="display:none; font-size: 1.2rem;"></i>
                         </label>
-                        <label class="list-group-item list-group-item-action d-flex align-items-center">
+                        <label class="list-group-item list-group-item-action d-flex align-items-center py-3">
                             <input type="radio" name="selected_bank" value="bri" class="d-none">
-                            <img src="<?= base_url('assets/image/bri.svg') ?>" alt="BRI" height="28" class="me-3">
-                            <span>BRI Virtual Account</span>
-                            <i class="bi bi-check-circle-fill text-success ms-auto bank-check" style="display:none;"></i>
+                            <img src="<?= base_url('assets/image/bri.svg') ?>" alt="BRI" height="28"
+                                style="width: 60px; object-fit: contain;">
+                            <div class="ms-3">
+                                <div class="fw-bold">BRI Virtual Account</div>
+                                <small class="text-muted">Bank Rakyat Indonesia</small>
+                            </div>
+                            <i class="bi bi-check-circle-fill text-success ms-auto bank-check"
+                                style="display:none; font-size: 1.2rem;"></i>
                         </label>
                     </div>
                 </div>
@@ -265,7 +285,7 @@ $outstanding = max(0, $total - $paid);
                     modal.show();
                 } else if (selectedMethod) {
                     // Go directly to gateway for QRIS/E-Wallet
-                    window.location.href = '<?= base_url('/payment/gateway/' . $invoice['id_invoice']) ?>?method=' + selectedMethod;
+                    window.location.href = '<?= base_url('/invoice/gateway/' . $invoice['id_invoice']) ?>?method=' + selectedMethod;
                 }
             });
 
@@ -292,7 +312,7 @@ $outstanding = max(0, $total - $paid);
             btnConfirmBank.addEventListener('click', function () {
                 var selectedBank = document.querySelector('input[name="selected_bank"]:checked');
                 if (selectedBank) {
-                    window.location.href = '<?= base_url('/payment/gateway/' . $invoice['id_invoice']) ?>?method=va&bank=' + selectedBank.value;
+                    window.location.href = '<?= base_url('/invoice/gateway/' . $invoice['id_invoice']) ?>?method=va&bank=' + selectedBank.value;
                 }
             });
 
@@ -305,7 +325,11 @@ $outstanding = max(0, $total - $paid);
                 if (this.files.length) {
                     var file = this.files[0];
                     if (file.size > 5 * 1024 * 1024) {
-                        alert('File terlalu besar! Maksimal 5MB');
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'File Terlalu Besar',
+                            text: 'Ukuran file maksimal 5MB'
+                        });
                         this.value = '';
                         return;
                     }
@@ -321,16 +345,21 @@ $outstanding = max(0, $total - $paid);
             // Cash form submit
             var cashForm = document.getElementById('cash-form');
             var btnCashSubmit = document.getElementById('btn-cash-submit');
+            var isSubmitting = false; // Prevent double submit
 
             cashForm.addEventListener('submit', function (e) {
                 e.preventDefault();
+
+                // Prevent double submit
+                if (isSubmitting) return;
+                isSubmitting = true;
 
                 btnCashSubmit.disabled = true;
                 btnCashSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Memproses...';
 
                 var fd = new FormData(cashForm);
 
-                fetch('<?= base_url('/payment/create/' . $invoice['id_invoice']) ?>', {
+                fetch('<?= base_url('/invoice/create/' . $invoice['id_invoice']) ?>', {
                     method: 'POST',
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
                     body: fd
@@ -338,28 +367,31 @@ $outstanding = max(0, $total - $paid);
                     .then(function (r) { return r.json(); })
                     .then(function (j) {
                         if (j.success) {
+                            // Langsung redirect setelah tampilkan alert sukses
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Berhasil!',
                                 text: 'Pembayaran berhasil disimpan',
-                                timer: 2000,
+                                timer: 1500,
                                 timerProgressBar: true,
-                                showConfirmButton: false
-                            }).then(function () {
-                                window.location.href = '<?= base_url('/invoice') ?>';
+                                showConfirmButton: false,
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                didOpen: function () {
+                                    // Set redirect setelah timer, hindari double load
+                                    setTimeout(function () {
+                                        window.location.replace('<?= base_url('/invoice') ?>');
+                                    }, 1600);
+                                }
                             });
                         } else {
-                            throw new Error(j.message || 'Gagal menyimpan pembayaran');
+                            // Any non-success: just redirect to invoice without showing error
+                            window.location.replace(j.url || '<?= base_url('/invoice') ?>');
                         }
                     })
                     .catch(function (err) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Gagal',
-                            text: err.message
-                        });
-                        btnCashSubmit.disabled = false;
-                        btnCashSubmit.innerHTML = '<i class="bi bi-check"></i> Simpan Pembayaran';
+                        // Network or parse error - just redirect
+                        window.location.replace('<?= base_url('/invoice') ?>');
                     });
             });
         });

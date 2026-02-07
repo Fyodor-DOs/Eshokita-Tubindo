@@ -1,6 +1,6 @@
 <?= $this->extend('layouts/dashboard') ?>
 <?= $this->section('content') ?>
-<?= view('components/Breadcrumb', ['segment1' => 'payment', 'segment2' => 'gateway', 'segment3' => 'Pembayaran']) ?>
+<?= view('components/Breadcrumb', ['segment1' => 'invoice', 'segment2' => 'gateway', 'segment3' => 'Pembayaran']) ?>
 
 <?php if ($amount <= 0): ?>
     <div class="alert alert-success">
@@ -24,7 +24,7 @@
                     </h5>
                 </div>
 
-                <div class="card-body">
+                <div class="btn-body">
                     <!-- Invoice Info -->
                     <div class="text-center mb-3">
                         <small class="text-muted"><?= esc($invoice['invoice_no']) ?></small>
@@ -82,7 +82,7 @@
                                     <span class="text-muted">Bank:</span>
                                     <strong><?= $bankName ?></strong>
                                 </div>
-                                <a href="<?= base_url('/payment/create/' . $invoice['id_invoice']) ?>"
+                                <a href="<?= base_url('/invoice/create/' . $invoice['id_invoice']) ?>"
                                     class="btn btn-sm btn-outline-secondary">
                                     <i class="bi bi-arrow-left"></i> Ganti Bank
                                 </a>
@@ -179,7 +179,7 @@
                     <button type="button" class="btn btn-success w-100 mb-2" id="btn-pay">
                         <i class="bi bi-check-circle"></i> Bayar Sekarang
                     </button>
-                    <a href="<?= base_url('/payment/create/' . $invoice['id_invoice']) ?>"
+                    <a href="<?= base_url('/invoice/create/' . $invoice['id_invoice']) ?>"
                         class="btn btn-outline-secondary w-100">
                         <i class="bi bi-arrow-left"></i> Ganti Metode Pembayaran
                     </a>
@@ -210,7 +210,7 @@
                         text: 'Sesi pembayaran telah berakhir. Silakan coba lagi.',
                         confirmButtonText: 'OK'
                     }).then(function () {
-                        window.location.href = '<?= base_url('/payment/create/' . $invoice['id_invoice']) ?>';
+                        window.location.href = '<?= base_url('/invoice/create/' . $invoice['id_invoice']) ?>';
                     });
                 }
             }, 1000);
@@ -242,7 +242,6 @@
             }
 
             // Pay button
-            const btnPay = document.getElementById('btn-pay');
             const statusMessage = document.getElementById('status-message');
 
             btnPay.addEventListener('click', async function () {
@@ -253,15 +252,27 @@
                 statusMessage.className = 'mt-3 alert alert-info';
                 statusMessage.innerHTML = '<i class="bi bi-hourglass-split"></i> Memproses pembayaran...';
 
+                // Determine provider detail
+                let providerInfo = '';
+                <?php if ($method === 'va'): ?>
+                    providerInfo = 'Bank: <?= $bankName ?? "BCA" ?>';
+                <?php elseif ($method === 'ewallet'): ?>
+                    const selectedEwallet = document.querySelector('input[name="ewallet"]:checked');
+                    const ewalletNames = {'gopay': 'GoPay', 'ovo': 'OVO', 'dana': 'DANA', 'shopeepay': 'ShopeePay', 'linkaja': 'LinkAja'};
+                    providerInfo = 'E-Wallet: ' + (selectedEwallet ? (ewalletNames[selectedEwallet.value] || selectedEwallet.value) : 'GoPay');
+                <?php elseif ($method === 'qris'): ?>
+                    providerInfo = 'Provider: QRIS';
+                <?php endif; ?>
+
                 const formData = new FormData();
                 formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
                 formData.append('method', '<?= $method ?>');
                 formData.append('amount', '<?= $amount ?>');
                 formData.append('paid_at', new Date().toISOString().slice(0, 19).replace('T', ' '));
-                formData.append('note', 'Pembayaran via <?= strtoupper($method) ?>');
+                formData.append('note', providerInfo + ' | Pembayaran via <?= strtoupper($method) ?>');
 
                 try {
-                    const response = await fetch('<?= base_url('/payment/process/' . $invoice['id_invoice']) ?>', {
+                    const response = await fetch('<?= base_url('/invoice/process/' . $invoice['id_invoice']) ?>', {
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',

@@ -72,11 +72,11 @@
 
                         <td class="text-center">
                             <div class="btn-group btn-group-sm" role="group">
-                                <a class="btn btn-info" href="<?= base_url('/payment/detail/'.$i['id_invoice']) ?>" title="Lihat Detail">
+                                <a class="btn btn-info" href="<?= base_url('/invoice/detail/'.$i['id_invoice']) ?>" title="Lihat Detail">
                                     <i class="bi bi-eye"></i> Detail
                                 </a>
                                 <?php if($i['status'] !== 'paid'): ?>
-                                <a class="btn btn-success" href="<?= base_url('/payment/create/'.$i['id_invoice']) ?>" title="Tambah Pembayaran">
+                                <a class="btn btn-success" href="<?= base_url('/invoice/create/'.$i['id_invoice']) ?>" title="Tambah Pembayaran">
                                     <i class="bi bi-plus-circle"></i> Bayar
                                 </a>
                                 <?php endif; ?>

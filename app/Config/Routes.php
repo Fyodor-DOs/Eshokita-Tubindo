@@ -134,9 +134,8 @@ $routes->group('invoice', ['filters' => ['auth', 'role:admin,produksi']], functi
     $routes->get('/', 'InvoiceController::index');
     $routes->match(['GET', 'POST'], 'create-from-pengiriman/(:num)', 'InvoiceController::createFromPengiriman/$1');
     $routes->match(['GET', 'POST'], 'create-from-transaction/(:num)', 'InvoiceController::createFromTransaction/$1');
-});
-$routes->group('payment', ['filters' => ['auth', 'role:admin,produksi']], function ($routes) {
-    $routes->get('invoice/(:num)', 'PaymentController::listByInvoice/$1');
+    // Payment sub-routes
+    $routes->get('payments/(:num)', 'PaymentController::listByInvoice/$1');
     $routes->get('detail/(:num)', 'PaymentController::detail/$1');
     $routes->match(['GET', 'POST'], 'create/(:num)', 'PaymentController::create/$1');
     $routes->get('gateway/(:num)', 'PaymentController::gateway/$1');

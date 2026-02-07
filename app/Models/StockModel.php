@@ -29,22 +29,24 @@ class StockModel extends Model
         if (!$stockTableExists) {
             try {
                 $prod = $db->table('product')->select('qty')->where('id_product', $idProduct)->get()->getRowArray();
-                $current = (int)($prod['qty'] ?? 0);
+                $current = (int) ($prod['qty'] ?? 0);
                 $newQty = max(0, $current + $qtyChange);
+                log_message('debug', "Stock update (fallback): product={$idProduct}, current={$current}, change={$qtyChange}, newQty={$newQty}");
                 $ok = $db->table('product')->where('id_product', $idProduct)->update([
                     'qty' => $newQty,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
-                return (bool)$ok;
+                log_message('debug', "Stock update (fallback) result: " . ($ok ? 'success' : 'failed'));
+                return (bool) $ok;
             } catch (\Throwable $th) {
-                log_message('error', 'updateStock fallback failed: '.$th->getMessage());
+                log_message('error', 'updateStock fallback failed: ' . $th->getMessage());
                 return false;
             }
         }
 
         // Normal path using stock table
         $stock = $this->where('id_product', $idProduct)->first();
-        
+
         if ($stock) {
             // Update existing stock
             $newQty = max(0, $stock['qty'] + $qtyChange);
@@ -52,7 +54,7 @@ class StockModel extends Model
                 'qty' => $newQty,
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
-            
+
             if ($result === false) {
                 return false;
             }
@@ -62,14 +64,15 @@ class StockModel extends Model
                     'qty' => $newQty,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
-            } catch (\Throwable $th) { /* ignore */ }
+            } catch (\Throwable $th) { /* ignore */
+            }
             return true;
         } else {
             // Create new stock entry based on current product qty + delta
             try {
                 $db = \Config\Database::connect();
                 $prod = $db->table('product')->select('qty')->where('id_product', $idProduct)->get()->getRowArray();
-                $currentProdQty = (int)($prod['qty'] ?? 0);
+                $currentProdQty = (int) ($prod['qty'] ?? 0);
             } catch (\Throwable $th) {
                 $currentProdQty = 0;
             }
@@ -80,7 +83,7 @@ class StockModel extends Model
                 'qty' => $initialQty,
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
-            
+
             if ($result === false) {
                 return false;
             }
@@ -90,7 +93,8 @@ class StockModel extends Model
                     'qty' => $initialQty,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
-            } catch (\Throwable $th) { /* ignore */ }
+            } catch (\Throwable $th) { /* ignore */
+            }
             return true;
         }
     }
