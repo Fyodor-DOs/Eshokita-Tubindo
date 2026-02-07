@@ -67,20 +67,30 @@
 
                     <?php elseif ($method === 'va'): ?>
                         <!-- Virtual Account Content -->
+                        <?php
+                        $bank = $_GET['bank'] ?? 'bca';
+                        $vaPrefixes = ['bca' => '8277', 'bni' => '8810', 'mandiri' => '8900', 'bri' => '8880'];
+                        $prefix = $vaPrefixes[$bank] ?? '8277';
+                        $vaNumber = $prefix . ' 0' . str_pad($invoice['id_invoice'], 10, '0', STR_PAD_LEFT);
+                        $bankNames = ['bca' => 'BCA', 'bni' => 'BNI', 'mandiri' => 'Mandiri', 'bri' => 'BRI'];
+                        $bankName = $bankNames[$bank] ?? 'BCA';
+                        ?>
+
                         <div class="mb-4">
-                            <div class="btn-group w-100 mb-3" role="group">
-                                <button type="button" class="btn btn-outline-primary va-bank active"
-                                    data-bank="bca">BCA</button>
-                                <button type="button" class="btn btn-outline-primary va-bank" data-bank="bni">BNI</button>
-                                <button type="button" class="btn btn-outline-primary va-bank"
-                                    data-bank="mandiri">Mandiri</button>
-                                <button type="button" class="btn btn-outline-primary va-bank" data-bank="bri">BRI</button>
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div>
+                                    <span class="text-muted">Bank:</span>
+                                    <strong><?= $bankName ?></strong>
+                                </div>
+                                <a href="<?= base_url('/payment/create/' . $invoice['id_invoice']) ?>"
+                                    class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> Ganti Bank
+                                </a>
                             </div>
 
                             <div class="border rounded p-3 text-center bg-light">
                                 <small class="text-muted">Nomor Virtual Account</small>
-                                <h4 class="font-monospace mb-2" id="va-number">8277
-                                    0<?= str_pad($invoice['id_invoice'], 10, '0', STR_PAD_LEFT) ?></h4>
+                                <h4 class="font-monospace mb-2" id="va-number"><?= $vaNumber ?></h4>
                                 <button type="button" class="btn btn-sm btn-primary" id="btn-copy-va">
                                     <i class="bi bi-clipboard"></i> Salin
                                 </button>
@@ -205,18 +215,7 @@
                 }
             }, 1000);
 
-            // VA Bank tabs
-            const bankTabs = document.querySelectorAll('.va-bank');
-            const vaPrefixes = { bca: '8277', bni: '8810', mandiri: '8900', bri: '8880' };
-            bankTabs.forEach(function (tab) {
-                tab.addEventListener('click', function () {
-                    bankTabs.forEach(function (t) { t.classList.remove('active'); });
-                    this.classList.add('active');
-                    const bank = this.dataset.bank;
-                    document.getElementById('va-number').textContent =
-                        vaPrefixes[bank] + ' 0<?= str_pad($invoice['id_invoice'], 10, '0', STR_PAD_LEFT) ?>';
-                });
-            });
+            const btnPay = document.getElementById('btn-pay');
 
             // Copy VA
             const btnCopyVa = document.getElementById('btn-copy-va');

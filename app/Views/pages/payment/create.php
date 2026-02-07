@@ -163,6 +163,53 @@ $outstanding = max(0, $total - $paid);
         </div>
     </div>
 
+    <!-- Modal Pilih Bank VA -->
+    <div class="modal fade" id="modalPilihBank" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-bank"></i> Pilih Bank</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Pilih bank untuk Virtual Account:</p>
+                    <div class="list-group" id="bank-list">
+                        <label class="list-group-item list-group-item-action d-flex align-items-center">
+                            <input type="radio" name="selected_bank" value="bca" class="d-none">
+                            <img src="<?= base_url('assets/image/bca.svg') ?>" alt="BCA" height="28" class="me-3">
+                            <span>BCA Virtual Account</span>
+                            <i class="bi bi-check-circle-fill text-success ms-auto bank-check" style="display:none;"></i>
+                        </label>
+                        <label class="list-group-item list-group-item-action d-flex align-items-center">
+                            <input type="radio" name="selected_bank" value="bni" class="d-none">
+                            <img src="<?= base_url('assets/image/bni.png') ?>" alt="BNI" height="28" class="me-3">
+                            <span>BNI Virtual Account</span>
+                            <i class="bi bi-check-circle-fill text-success ms-auto bank-check" style="display:none;"></i>
+                        </label>
+                        <label class="list-group-item list-group-item-action d-flex align-items-center">
+                            <input type="radio" name="selected_bank" value="mandiri" class="d-none">
+                            <img src="<?= base_url('assets/image/mandiri.png') ?>" alt="Mandiri" height="28" class="me-3">
+                            <span>Mandiri Virtual Account</span>
+                            <i class="bi bi-check-circle-fill text-success ms-auto bank-check" style="display:none;"></i>
+                        </label>
+                        <label class="list-group-item list-group-item-action d-flex align-items-center">
+                            <input type="radio" name="selected_bank" value="bri" class="d-none">
+                            <img src="<?= base_url('assets/image/bri.svg') ?>" alt="BRI" height="28" class="me-3">
+                            <span>BRI Virtual Account</span>
+                            <i class="bi bi-check-circle-fill text-success ms-auto bank-check" style="display:none;"></i>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" id="btn-confirm-bank" disabled>
+                        <i class="bi bi-arrow-right"></i> Lanjutkan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <style>
         .payment-card {
             cursor: pointer;
@@ -205,10 +252,48 @@ $outstanding = max(0, $total - $paid);
                         cashSection.style.display = 'none';
                         digitalSection.style.display = 'block';
                         noSelection.style.display = 'none';
-                        // Update gateway link - NO form submit, just a regular link
-                        btnGateway.href = '<?= base_url('/payment/gateway/' . $invoice['id_invoice']) ?>?method=' + selectedMethod;
                     }
                 });
+            });
+
+            // Handle Lanjutkan button - VA shows modal, others go direct
+            btnGateway.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (selectedMethod === 'va') {
+                    // Show bank selection modal
+                    var modal = new bootstrap.Modal(document.getElementById('modalPilihBank'));
+                    modal.show();
+                } else if (selectedMethod) {
+                    // Go directly to gateway for QRIS/E-Wallet
+                    window.location.href = '<?= base_url('/payment/gateway/' . $invoice['id_invoice']) ?>?method=' + selectedMethod;
+                }
+            });
+
+            // Bank selection in modal
+            var bankRadios = document.querySelectorAll('input[name="selected_bank"]');
+            var btnConfirmBank = document.getElementById('btn-confirm-bank');
+            var bankListItems = document.querySelectorAll('#bank-list .list-group-item');
+
+            bankListItems.forEach(function (item) {
+                item.addEventListener('click', function () {
+                    // Update visual selection
+                    bankListItems.forEach(function (i) {
+                        i.classList.remove('active');
+                        i.querySelector('.bank-check').style.display = 'none';
+                    });
+                    this.classList.add('active');
+                    this.querySelector('.bank-check').style.display = 'inline';
+                    this.querySelector('input').checked = true;
+                    btnConfirmBank.disabled = false;
+                });
+            });
+
+            // Confirm bank and go to gateway
+            btnConfirmBank.addEventListener('click', function () {
+                var selectedBank = document.querySelector('input[name="selected_bank"]:checked');
+                if (selectedBank) {
+                    window.location.href = '<?= base_url('/payment/gateway/' . $invoice['id_invoice']) ?>?method=va&bank=' + selectedBank.value;
+                }
             });
 
             // File preview
@@ -260,7 +345,7 @@ $outstanding = max(0, $total - $paid);
                                 timer: 2000,
                                 timerProgressBar: true,
                                 showConfirmButton: false
-                            }).then(function() {
+                            }).then(function () {
                                 window.location.href = '<?= base_url('/invoice') ?>';
                             });
                         } else {
