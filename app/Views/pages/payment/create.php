@@ -73,7 +73,7 @@ $outstanding = max(0, $total - $paid);
                                 <div class="card-body text-center">
                                     <i class="bi bi-qr-code text-danger" style="font-size: 2rem;"></i>
                                     <h6 class="mt-2 mb-1">QRIS</h6>
-                                    <small class="text-muted">GoPay, OVO, DANA, dll</small>
+                                    <small class="text-muted">Scan untuk bayar</small>
                                 </div>
                             </div>
                         </div>
@@ -253,14 +253,26 @@ $outstanding = max(0, $total - $paid);
                     .then(function (r) { return r.json(); })
                     .then(function (j) {
                         if (j.success) {
-                            alert('Pembayaran berhasil disimpan!');
-                            window.location.href = '<?= base_url('/invoice') ?>';
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: 'Pembayaran berhasil disimpan',
+                                timer: 2000,
+                                timerProgressBar: true,
+                                showConfirmButton: false
+                            }).then(function() {
+                                window.location.href = '<?= base_url('/invoice') ?>';
+                            });
                         } else {
                             throw new Error(j.message || 'Gagal menyimpan pembayaran');
                         }
                     })
                     .catch(function (err) {
-                        alert('Gagal: ' + err.message);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: err.message
+                        });
                         btnCashSubmit.disabled = false;
                         btnCashSubmit.innerHTML = '<i class="bi bi-check"></i> Simpan Pembayaran';
                     });
