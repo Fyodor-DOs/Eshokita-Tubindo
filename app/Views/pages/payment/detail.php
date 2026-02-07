@@ -8,9 +8,9 @@
     <h4>Detail Pembayaran Invoice</h4>
     <div class="btn-group">
       <?php if (!$isPaid): ?>
-      <a href="<?= base_url('/payment/create/'.$invoice['id_invoice']) ?>" class="btn btn-success">
-        <i class="bi bi-plus-circle"></i> Tambah Pembayaran
-      </a>
+        <a href="<?= base_url('/payment/create/' . $invoice['id_invoice']) ?>" class="btn btn-success">
+          <i class="bi bi-plus-circle"></i> Tambah Pembayaran
+        </a>
       <?php endif; ?>
       <a href="<?= base_url('/invoice') ?>" class="btn btn-secondary">
         <i class="bi bi-arrow-left"></i> Kembali
@@ -45,7 +45,9 @@
             </tr>
             <tr>
               <td class="text-muted">BON</td>
-              <td><?= !empty($invoice['no_bon']) ? '<span class="badge bg-info">'.esc($invoice['no_bon']).'</span>' : '<span class="text-muted">Belum dikirim</span>' ?></td>
+              <td>
+                <?= !empty($invoice['no_bon']) ? '<span class="badge bg-info">' . esc($invoice['no_bon']) . '</span>' : '<span class="text-muted">Belum dikirim</span>' ?>
+              </td>
             </tr>
             <tr>
               <td class="text-muted">Status</td>
@@ -108,16 +110,13 @@
                 <i class="bi bi-check-circle-fill"></i> Sudah Diterima
               </span>
             </div>
-            <a href="<?= base_url('uploads/penerimaan/'.$invoice['foto_penerimaan']) ?>" target="_blank">
-              <img src="<?= base_url('uploads/penerimaan/'.$invoice['foto_penerimaan']) ?>" 
-                   alt="Bukti Penerimaan" 
-                   class="img-fluid rounded shadow-sm" 
-                   style="max-height: 200px; cursor: pointer;">
+            <a href="<?= base_url('uploads/penerimaan/' . $invoice['foto_penerimaan']) ?>" target="_blank">
+              <img src="<?= base_url('uploads/penerimaan/' . $invoice['foto_penerimaan']) ?>" alt="Bukti Penerimaan"
+                class="img-fluid rounded shadow-sm" style="max-height: 200px; cursor: pointer;">
             </a>
             <div class="mt-2">
-              <a href="<?= base_url('uploads/penerimaan/'.$invoice['foto_penerimaan']) ?>" 
-                 target="_blank" 
-                 class="btn btn-sm btn-outline-success">
+              <a href="<?= base_url('uploads/penerimaan/' . $invoice['foto_penerimaan']) ?>" target="_blank"
+                class="btn btn-sm btn-outline-success">
                 <i class="bi bi-download"></i> Download Bukti
               </a>
             </div>
@@ -172,24 +171,25 @@
                 </thead>
                 <tbody>
                   <?php foreach ($items as $idx => $item): ?>
-                  <tr>
-                    <td><?= $idx + 1 ?></td>
-                    <td>
-                      <strong><?= esc($item['name'] ?? 'Unknown') ?></strong>
-                      <?php if (!empty($item['sku'])): ?>
-                        <br><small class="text-muted">SKU: <?= esc($item['sku']) ?></small>
-                      <?php endif; ?>
-                    </td>
-                    <td class="text-center"><?= number_format((float)($item['qty'] ?? 0), 0, ',', '.') ?></td>
-                    <td class="text-end">Rp <?= number_format((float)($item['price'] ?? 0), 0, ',', '.') ?></td>
-                    <td class="text-end"><strong>Rp <?= number_format((float)($item['subtotal'] ?? 0), 0, ',', '.') ?></strong></td>
-                  </tr>
+                    <tr>
+                      <td><?= $idx + 1 ?></td>
+                      <td>
+                        <strong><?= esc($item['name'] ?? 'Unknown') ?></strong>
+                        <?php if (!empty($item['sku'])): ?>
+                          <br><small class="text-muted">SKU: <?= esc($item['sku']) ?></small>
+                        <?php endif; ?>
+                      </td>
+                      <td class="text-center"><?= number_format((float) ($item['qty'] ?? 0), 0, ',', '.') ?></td>
+                      <td class="text-end">Rp <?= number_format((float) ($item['price'] ?? 0), 0, ',', '.') ?></td>
+                      <td class="text-end"><strong>Rp
+                          <?= number_format((float) ($item['subtotal'] ?? 0), 0, ',', '.') ?></strong></td>
+                    </tr>
                   <?php endforeach; ?>
                 </tbody>
                 <tfoot class="table-light">
                   <tr>
                     <th colspan="4" class="text-end">Total Invoice:</th>
-                    <th class="text-end">Rp <?= number_format((float)$invoice['amount'], 0, ',', '.') ?></th>
+                    <th class="text-end">Rp <?= number_format((float) $invoice['amount'], 0, ',', '.') ?></th>
                   </tr>
                 </tfoot>
               </table>
@@ -208,7 +208,7 @@
             <div class="col-md-4">
               <div class="border rounded p-3">
                 <div class="text-muted small">Total Invoice</div>
-                <h5 class="mb-0">Rp <?= number_format((float)$invoice['amount'], 0, ',', '.') ?></h5>
+                <h5 class="mb-0">Rp <?= number_format((float) $invoice['amount'], 0, ',', '.') ?></h5>
               </div>
             </div>
             <div class="col-md-4">
@@ -254,40 +254,47 @@
                 </thead>
                 <tbody>
                   <?php foreach ($payments as $idx => $p): ?>
-                  <tr>
-                    <td><?= $idx + 1 ?></td>
-                    <td><?= date('d M Y H:i', strtotime($p['paid_at'])) ?></td>
-                    <td>
-                      <?php
-                      $methodBadge = [
-                        'cash' => 'success',
-                        'kredit' => 'warning',
-                        'transfer' => 'primary',
-                        'other' => 'secondary'
-                      ];
-                      $methodLabel = [
-                        'cash' => 'Tunai',
-                        'kredit' => 'Kredit',
-                        'transfer' => 'Transfer',
-                        'other' => 'Lainnya'
-                      ];
-                      ?>
-                      <span class="badge bg-<?= $methodBadge[$p['method']] ?? 'secondary' ?>">
-                        <?= $methodLabel[$p['method']] ?? ucfirst($p['method']) ?>
-                      </span>
-                    </td>
-                    <td class="text-end"><strong>Rp <?= number_format((float)$p['amount'], 0, ',', '.') ?></strong></td>
-                    <td>
-                      <?php if (!empty($p['invoice_photo'])): ?>
-                        <a href="<?= base_url('uploads/invoices/'.$p['invoice_photo']) ?>" target="_blank" class="btn btn-sm btn-outline-primary">
-                          <i class="bi bi-image"></i> Lihat Bukti
-                        </a>
-                      <?php else: ?>
-                        <span class="text-muted small">Tidak ada bukti</span>
-                      <?php endif; ?>
-                    </td>
-                    <td><?= esc($p['note']) ?: '-' ?></td>
-                  </tr>
+                    <tr>
+                      <td><?= $idx + 1 ?></td>
+                      <td><?= date('d M Y H:i', strtotime($p['paid_at'])) ?></td>
+                      <td>
+                        <?php
+                        $methodBadge = [
+                          'cash' => 'success',
+                          'kredit' => 'warning',
+                          'transfer' => 'primary',
+                          'qris' => 'danger',
+                          'va' => 'info',
+                          'ewallet' => 'warning',
+                          'other' => 'secondary'
+                        ];
+                        $methodLabel = [
+                          'cash' => 'Tunai',
+                          'kredit' => 'Kredit',
+                          'transfer' => 'Transfer',
+                          'qris' => 'QRIS',
+                          'va' => 'Virtual Account',
+                          'ewallet' => 'E-Wallet',
+                          'other' => 'Lainnya'
+                        ];
+                        ?>
+                        <span class="badge bg-<?= $methodBadge[$p['method']] ?? 'secondary' ?>">
+                          <?= $methodLabel[$p['method']] ?? ucfirst($p['method']) ?>
+                        </span>
+                      </td>
+                      <td class="text-end"><strong>Rp <?= number_format((float) $p['amount'], 0, ',', '.') ?></strong></td>
+                      <td>
+                        <?php if (!empty($p['invoice_photo'])): ?>
+                          <a href="<?= base_url('uploads/invoices/' . $p['invoice_photo']) ?>" target="_blank"
+                            class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-image"></i> Lihat Bukti
+                          </a>
+                        <?php else: ?>
+                          <span class="text-muted small">Tidak ada bukti</span>
+                        <?php endif; ?>
+                      </td>
+                      <td><?= esc($p['note']) ?: '-' ?></td>
+                    </tr>
                   <?php endforeach; ?>
                 </tbody>
               </table>

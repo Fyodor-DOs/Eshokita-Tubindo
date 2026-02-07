@@ -31,8 +31,9 @@ class PaymentController extends BaseController
     public function listByInvoice($id): \CodeIgniter\HTTP\ResponseInterface|string
     {
         $invoice = $this->invoiceModel->find($id);
-        if (!$invoice) return $this->response->setStatusCode(404)->setBody('Not found');
-        $payments = $this->paymentModel->where('id_invoice', $id)->orderBy('paid_at','DESC')->findAll();
+        if (!$invoice)
+            return $this->response->setStatusCode(404)->setBody('Not found');
+        $payments = $this->paymentModel->where('id_invoice', $id)->orderBy('paid_at', 'DESC')->findAll();
         return view('pages/payment/index', ['invoice' => $invoice, 'payments' => $payments]);
     }
 
@@ -64,20 +65,20 @@ class PaymentController extends BaseController
             ->where('i.id_invoice', $id)
             ->get()
             ->getRowArray();
-            
+
         if (!$invoice) {
             return $this->response->setStatusCode(404)->setBody('Invoice tidak ditemukan');
         }
-        
+
         // Parse transaction items
         $items = [];
         if (!empty($invoice['transaction_items'])) {
             $items = json_decode($invoice['transaction_items'], true) ?: [];
-            
+
             // Fix unknown products - lookup from database if name not exists
             foreach ($items as &$item) {
                 if (empty($item['name']) || $item['name'] === 'Unknown') {
-                    $idProduct = (int)($item['id_product'] ?? 0);
+                    $idProduct = (int) ($item['id_product'] ?? 0);
                     if ($idProduct > 0) {
                         $product = $db->table('product p')
                             ->select('p.name, p.unit, pc.name as category_name')
@@ -93,18 +94,18 @@ class PaymentController extends BaseController
             }
             unset($item);
         }
-        
+
         // Get all payments for this invoice
         $payments = $this->paymentModel
             ->where('id_invoice', $id)
             ->orderBy('paid_at', 'ASC')
             ->findAll();
-        
+
         // Calculate payment summary
         $totalPaid = array_sum(array_column($payments, 'amount'));
         $remaining = $invoice['amount'] - $totalPaid;
         $isPaid = $remaining <= 0;
-        
+
         $data = [
             'invoice' => $invoice,
             'items' => $items,
@@ -113,25 +114,25 @@ class PaymentController extends BaseController
             'remaining' => $remaining,
             'isPaid' => $isPaid
         ];
-        
+
         return view('pages/payment/detail', $data);
     }
 
     /**
-     * Form & proses tambah pembayaran
+     * Form & proses tambah pembayaran (Cash dengan upload foto)
      * @param int|string $id Invoice ID
-     */
-    /**
-     * Form & proses tambah pembayaran
      */
     public function create($id): \CodeIgniter\HTTP\ResponseInterface|string
     {
         if ($this->request->getMethod() !== 'POST') {
             $invoice = $this->invoiceModel->find($id);
+            if (!$invoice) {
+                return redirect()->to('/invoice')->with('error', 'Invoice tidak ditemukan');
+            }
             return view('pages/payment/create', ['invoice' => $invoice]);
         }
 
-        // Handle file upload
+        // Handle file upload for Cash payment
         $invoicePhoto = null;
         $file = $this->request->getFile('invoice_photo');
         if ($file && $file->isValid() && !$file->hasMoved()) {
@@ -144,20 +145,28 @@ class PaymentController extends BaseController
         if (!$invoice) {
             return $this->response->setJSON(['success' => false, 'message' => 'Invoice tidak ditemukan']);
         }
-        $totalPaid = $this->paymentModel->where('id_invoice', $id)->selectSum('amount')->first()['amount'] ?? 0;
-        $amountToPay = (float) $this->request->getPost('amount');
+
+        // Calculate remaining amount properly
+        $paidSum = $this->paymentModel->where('id_invoice', $id)->selectSum('amount')->first();
+        $totalPaid = (float) ($paidSum['amount'] ?? 0);
         $invoiceAmount = (float) $invoice['amount'];
-        if (($totalPaid + $amountToPay) > $invoiceAmount) {
-            // Jika overpayment, block tanpa pesan (atau bisa return success false tanpa message)
+        $remaining = $invoiceAmount - $totalPaid;
+
+        // If already fully paid
+        if ($remaining <= 0) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => '',
-                'url' => null
+                'message' => 'Invoice sudah lunas',
+                'url' => base_url('/invoice')
             ]);
         }
+
+        // Use remaining amount to prevent overpayment
+        $amountToPay = $remaining;
+
         // Normalize and guard payment method
         $method = strtolower($this->request->getPost('method') ?: 'cash');
-        $allowedMethods = ['cash','kredit','transfer','other'];
+        $allowedMethods = ['cash', 'kredit', 'transfer', 'qris', 'va', 'ewallet', 'other'];
         if (!in_array($method, $allowedMethods, true)) {
             $method = 'other';
         }
@@ -181,6 +190,106 @@ class PaymentController extends BaseController
             'success' => false,
             'message' => $this->paymentModel->errors(),
             'url' => null
+        ]);
+    }
+
+    /**
+     * Gateway halaman simulasi pembayaran (QRIS, VA, E-Wallet)
+     * @param int|string $id Invoice ID
+     */
+    public function gateway($id): \CodeIgniter\HTTP\ResponseInterface|string
+    {
+        $invoice = $this->invoiceModel->find($id);
+        if (!$invoice) {
+            return redirect()->to('/invoice')->with('error', 'Invoice tidak ditemukan');
+        }
+
+        // Get payment method from query string
+        $method = $this->request->getGet('method') ?: 'qris';
+        $allowedMethods = ['qris', 'va', 'ewallet'];
+        if (!in_array($method, $allowedMethods, true)) {
+            $method = 'qris';
+        }
+
+        // Calculate outstanding amount
+        $paidSum = $this->paymentModel->where('id_invoice', $id)->selectSum('amount')->first();
+        $totalPaid = (float) ($paidSum['amount'] ?? 0);
+        $amount = max(0, (float) $invoice['amount'] - $totalPaid);
+
+        // If already fully paid, redirect
+        if ($amount <= 0) {
+            return redirect()->to('/invoice')->with('info', 'Invoice sudah lunas');
+        }
+
+        return view('pages/payment/gateway', [
+            'invoice' => $invoice,
+            'method' => $method,
+            'amount' => $amount
+        ]);
+    }
+
+    /**
+     * Process payment from gateway simulation
+     * @param int|string $id Invoice ID
+     */
+    public function process($id): \CodeIgniter\HTTP\ResponseInterface
+    {
+        if ($this->request->getMethod() !== 'POST') {
+            return $this->response->setJSON(['success' => false, 'message' => 'Method not allowed']);
+        }
+
+        $invoice = $this->invoiceModel->find($id);
+        if (!$invoice) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invoice tidak ditemukan']);
+        }
+
+        // Calculate remaining amount properly
+        $paidSum = $this->paymentModel->where('id_invoice', $id)->selectSum('amount')->first();
+        $totalPaid = (float) ($paidSum['amount'] ?? 0);
+        $invoiceAmount = (float) $invoice['amount'];
+        $remaining = $invoiceAmount - $totalPaid;
+
+        // If already fully paid
+        if ($remaining <= 0) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invoice sudah lunas',
+            ]);
+        }
+
+        // Use remaining amount to prevent overpayment
+        $amountToPay = $remaining;
+
+        $method = strtolower($this->request->getPost('method') ?: 'other');
+        $allowedMethods = ['qris', 'va', 'ewallet', 'cash', 'kredit', 'transfer', 'other'];
+        if (!in_array($method, $allowedMethods, true)) {
+            $method = 'other';
+        }
+
+        // Generate transaction reference for digital payments
+        $transactionRef = strtoupper($method) . '-' . date('YmdHis') . '-' . $id;
+
+        $data = [
+            'id_invoice' => $id,
+            'paid_at' => $this->request->getPost('paid_at') ?: date('Y-m-d H:i:s'),
+            'method' => $method,
+            'amount' => $amountToPay,
+            'note' => $this->request->getPost('note') . ' | Ref: ' . $transactionRef,
+            'invoice_photo' => null, // Digital payments don't need photo
+        ];
+
+        if ($this->paymentModel->insert($data)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Pembayaran berhasil diterima',
+                'transaction_ref' => $transactionRef,
+                'url' => base_url('/invoice')
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Gagal menyimpan pembayaran',
         ]);
     }
 }
