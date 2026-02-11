@@ -10,21 +10,17 @@ class Penerimaan extends Migration
     {
         $this->forge->addField([
             'id_penerimaan' => [
-                'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
-                'auto_increment' => true,
+                'type' => 'VARCHAR',
+                'constraint' => 10,
             ],
             'id_pengiriman' => [
-                'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
+                'type' => 'VARCHAR',
+                'constraint' => 10,
                 'null' => false,
             ],
             'id_customer' => [
-                'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
+                'type' => 'VARCHAR',
+                'constraint' => 10,
                 'null' => true,
             ],
             'received_at' => [
@@ -38,7 +34,7 @@ class Penerimaan extends Migration
             ],
             'status' => [
                 'type' => 'ENUM',
-                'constraint' => ['received','partial','failed'],
+                'constraint' => ['received', 'partial', 'failed'],
                 'default' => 'received',
             ],
             'items_received' => [
@@ -60,9 +56,8 @@ class Penerimaan extends Migration
                 'default' => 0,
             ],
             'verified_by' => [
-                'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
+                'type' => 'VARCHAR',
+                'constraint' => 10,
                 'null' => true,
             ],
             'verified_at' => [

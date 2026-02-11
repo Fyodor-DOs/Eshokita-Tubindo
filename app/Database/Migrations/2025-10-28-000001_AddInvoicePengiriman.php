@@ -18,11 +18,14 @@ class AddInvoicePengiriman extends Migration
                 $result = $this->db->query("PRAGMA table_info({$table})");
                 if ($result) {
                     foreach ($result->getResultArray() as $row) {
-                        if (isset($row['name']) && $row['name'] === $column) return true;
-                        if (isset($row['cid']) && isset($row['name']) && $row['name'] === $column) return true;
+                        if (isset($row['name']) && $row['name'] === $column)
+                            return true;
+                        if (isset($row['cid']) && isset($row['name']) && $row['name'] === $column)
+                            return true;
                     }
                 }
-            } catch (\Throwable $e) { }
+            } catch (\Throwable $e) {
+            }
         }
         return false;
     }
@@ -32,10 +35,10 @@ class AddInvoicePengiriman extends Migration
         if (!$this->columnExists('invoice', 'id_pengiriman')) {
             $this->forge->addColumn('invoice', [
                 'id_pengiriman' => [
-                    'type'       => 'INT',
-                    'constraint' => 11,
-                    'null'       => true,
-                    'default'    => null,
+                    'type' => 'VARCHAR',
+                    'constraint' => 10,
+                    'null' => true,
+                    'default' => null,
                 ],
             ]);
         }

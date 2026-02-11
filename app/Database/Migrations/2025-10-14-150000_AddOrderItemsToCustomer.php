@@ -6,13 +6,16 @@ class AddOrderItemsToCustomer extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('customer', [
-            'order_items' => [
-                'type' => 'TEXT',
-                'null' => true,
-                'after' => 'produk',
-            ],
-        ]);
+        $fields = \Config\Database::connect()->getFieldNames('customer');
+        if (!in_array('order_items', $fields)) {
+            $this->forge->addColumn('customer', [
+                'order_items' => [
+                    'type' => 'TEXT',
+                    'null' => true,
+                    'after' => 'produk',
+                ],
+            ]);
+        }
     }
 
     public function down()

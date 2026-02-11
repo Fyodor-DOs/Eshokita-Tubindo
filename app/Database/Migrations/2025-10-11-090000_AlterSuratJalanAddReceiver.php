@@ -8,43 +8,58 @@ class AlterSuratJalanAddReceiver extends Migration
 {
     public function up()
     {
+        $db = \Config\Database::connect();
+        $fields = $db->getFieldNames('nota');
+
         // Add new columns to connect Nota with Pengiriman & Customer,
-        // plus store receiver name/signature. Also allow ttd_produksi to be NULL.
-        $this->forge->addColumn('nota', [
-            'id_pengiriman' => [
-                'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
+        // plus store receiver name/signature. Only add if not already present.
+        $columnsToAdd = [];
+
+        if (!in_array('id_pengiriman', $fields)) {
+            $columnsToAdd['id_pengiriman'] = [
+                'type' => 'VARCHAR',
+                'constraint' => 10,
                 'null' => true,
                 'after' => 'id_surat_jalan',
-            ],
-            'id_customer' => [
-                'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
+            ];
+        }
+        if (!in_array('id_customer', $fields)) {
+            $columnsToAdd['id_customer'] = [
+                'type' => 'VARCHAR',
+                'constraint' => 10,
                 'null' => true,
                 'after' => 'id_pengiriman',
-            ],
-            'nama_penerima' => [
+            ];
+        }
+        if (!in_array('nama_penerima', $fields)) {
+            $columnsToAdd['nama_penerima'] = [
                 'type' => 'VARCHAR',
                 'constraint' => 100,
                 'null' => true,
                 'after' => 'kode_rute',
-            ],
-            'ttd_penerima' => [
+            ];
+        }
+        if (!in_array('ttd_penerima', $fields)) {
+            $columnsToAdd['ttd_penerima'] = [
                 'type' => 'TEXT',
                 'null' => true,
                 'after' => 'nama_penerima',
-            ],
-        ]);
+            ];
+        }
+
+        if (!empty($columnsToAdd)) {
+            $this->forge->addColumn('nota', $columnsToAdd);
+        }
 
         // Modify ttd_produksi to be nullable
-        $this->forge->modifyColumn('nota', [
-            'ttd_produksi' => [
-                'type' => 'TEXT',
-                'null' => true,
-            ],
-        ]);
+        if (in_array('ttd_produksi', $fields)) {
+            $this->forge->modifyColumn('nota', [
+                'ttd_produksi' => [
+                    'type' => 'TEXT',
+                    'null' => true,
+                ],
+            ]);
+        }
     }
 
     public function down()
