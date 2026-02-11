@@ -14,8 +14,11 @@ class StockModel extends Model
 
     /**
      * Update atau create stock untuk product
+     *
+     * @param string $idProduct ID produk (VARCHAR)
+     * @param int    $qtyChange Perubahan qty (positif=tambah, negatif=kurang)
      */
-    public function updateStock(int $idProduct, int $qtyChange): bool
+    public function updateStock(string $idProduct, int $qtyChange): bool
     {
         $db = \Config\Database::connect();
 
@@ -58,7 +61,7 @@ class StockModel extends Model
             if ($result === false) {
                 return false;
             }
-            // Sinkronkan juga ke kolom qty di table product (agar halaman Product menampilkan stok terbaru)
+            // Sinkronkan juga ke kolom qty di table product
             try {
                 $db->table('product')->where('id_product', $idProduct)->update([
                     'qty' => $newQty,
@@ -76,7 +79,7 @@ class StockModel extends Model
             } catch (\Throwable $th) {
                 $currentProdQty = 0;
             }
-            $computedQty = $currentProdQty + $qtyChange; // qtyChange can be negative
+            $computedQty = $currentProdQty + $qtyChange;
             $initialQty = max(0, $computedQty);
             $result = $this->insert([
                 'id_product' => $idProduct,
@@ -113,7 +116,7 @@ class StockModel extends Model
     /**
      * Get stock by product id
      */
-    public function getByProduct(int $idProduct)
+    public function getByProduct(string $idProduct)
     {
         return $this->where('id_product', $idProduct)->first();
     }

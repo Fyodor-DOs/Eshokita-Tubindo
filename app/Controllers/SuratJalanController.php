@@ -34,8 +34,8 @@ class SuratJalanController extends BaseController
     public function create()
     {
         if ($this->request->getMethod() == 'POST') {
-            $idPengiriman = (int)$this->request->getPost('id_pengiriman');
-            $tanggal      = $this->request->getPost('tanggal') ?: date('Y-m-d');
+            $idPengiriman = $this->request->getPost('id_pengiriman');
+            $tanggal = $this->request->getPost('tanggal') ?: date('Y-m-d');
 
             $db = \Config\Database::connect();
             $pengirimanModel = new \App\Models\PengirimanModel();
@@ -59,7 +59,7 @@ class SuratJalanController extends BaseController
             // Group invoices by customer
             $byCustomer = [];
             foreach ($invoices as $inv) {
-                $cid = (int)$inv['id_customer'];
+                $cid = $inv['id_customer'];
                 if (!isset($byCustomer[$cid])) {
                     $byCustomer[$cid] = [
                         'id_customer' => $cid,
@@ -74,9 +74,9 @@ class SuratJalanController extends BaseController
                     $decoded = json_decode($inv['items'], true);
                     if (is_array($decoded)) {
                         foreach ($decoded as $it) {
-                            $pid = (int)($it['id_product'] ?? 0);
-                            $qty = (int)($it['qty'] ?? 0);
-                            $harga = (float)($it['price'] ?? 0);
+                            $pid = (int) ($it['id_product'] ?? 0);
+                            $qty = (int) ($it['qty'] ?? 0);
+                            $harga = (float) ($it['price'] ?? 0);
                             if ($pid > 0 && $qty > 0) {
                                 // Aggregate same products
                                 $found = false;
@@ -107,14 +107,14 @@ class SuratJalanController extends BaseController
             $createdCount = 0;
             foreach ($byCustomer as $cid => $data) {
                 $input = [
-                    'tanggal'       => $tanggal,
-                    'kode_rute'     => $pengiriman['kode_rute'],
-                    'muatan'        => json_encode($data['items']),
-                    'ttd_produksi'  => null,
+                    'tanggal' => $tanggal,
+                    'kode_rute' => $pengiriman['kode_rute'],
+                    'muatan' => json_encode($data['items']),
+                    'ttd_produksi' => null,
                     'id_pengiriman' => $idPengiriman,
-                    'id_customer'   => $cid,
+                    'id_customer' => $cid,
                     'nama_penerima' => null,
-                    'ttd_penerima'  => null,
+                    'ttd_penerima' => null,
                 ];
 
                 if ($this->suratJalanModel->insert($input)) {
@@ -132,30 +132,31 @@ class SuratJalanController extends BaseController
                 $tracking = new \App\Models\ShipmentTrackingModel();
                 $tracking->insert([
                     'id_pengiriman' => $idPengiriman,
-                    'status'        => 'created',
-                    'location'      => null,
-                    'note'          => "Surat jalan dibuat untuk {$createdCount} customer",
-                    'created_at'    => date('Y-m-d H:i:s'),
+                    'status' => 'created',
+                    'location' => null,
+                    'note' => "Surat jalan dibuat untuk {$createdCount} customer",
+                    'created_at' => date('Y-m-d H:i:s'),
                 ]);
-            } catch (\Throwable $th) { /* ignore */ }
+            } catch (\Throwable $th) { /* ignore */
+            }
 
             return $this->response->setJSON([
                 'success' => true,
                 'message' => "Berhasil membuat {$createdCount} surat jalan untuk {$createdCount} customer berbeda",
-                'url'     => '/surat-jalan',
+                'url' => '/surat-jalan',
             ]);
         }
 
         // GET: Ambil daftar pengiriman yang belum dibuat surat jalannya
         $db = \Config\Database::connect();
         $pengirimanModel = new \App\Models\PengirimanModel();
-        
+
         // Get all pengiriman
         $allPengiriman = $pengirimanModel
             ->select('id_pengiriman, no_bon, kode_rute, tanggal')
             ->orderBy('id_pengiriman', 'DESC')
             ->findAll();
-        
+
         // Filter out those that already have surat jalan
         $pengirimanList = [];
         foreach ($allPengiriman as $p) {
@@ -166,7 +167,7 @@ class SuratJalanController extends BaseController
                 $pengirimanList[] = $p;
             }
         }
-        
+
         $data['pengirimanList'] = $pengirimanList;
         return view('pages/nota/create', $data);
     }
@@ -174,13 +175,13 @@ class SuratJalanController extends BaseController
     public function createQuick($idPengiriman)
     {
         $pengirimanModel = new \App\Models\PengirimanModel();
-        $pengiriman = $pengirimanModel->find((int)$idPengiriman);
+        $pengiriman = $pengirimanModel->find($idPengiriman);
         if (!$pengiriman) {
             return $this->response->setJSON(['success' => false, 'message' => 'Pengiriman tidak ditemukan']);
         }
 
-        $idCustomer = (int)($pengiriman['id_customer'] ?? 0);
-        if ($idCustomer <= 0) {
+        $idCustomer = $pengiriman['id_customer'] ?? null;
+        if (empty($idCustomer)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Customer belum terikat pada pengiriman ini']);
         }
 
@@ -195,15 +196,15 @@ class SuratJalanController extends BaseController
             $decoded = json_decode($trx['items'], true);
             if (is_array($decoded)) {
                 foreach ($decoded as $it) {
-                    $pid = (int)($it['id_product'] ?? 0);
-                    $qty = (int)($it['qty'] ?? 0);
-                    $harga = (float)($it['price'] ?? 0);
-                    if ($pid > 0 && $qty > 0) {
+                    $pid = $it['id_product'] ?? 0;
+                    $qty = (int) ($it['qty'] ?? 0);
+                    $harga = (float) ($it['price'] ?? 0);
+                    if ($pid && $qty > 0) {
                         $items[] = [
                             'id_product' => $pid,
-                            'qty'        => $qty,
-                            'harga'      => $harga,
-                            'total'      => $qty * $harga,
+                            'qty' => $qty,
+                            'harga' => $harga,
+                            'total' => $qty * $harga,
                         ];
                     }
                 }
@@ -211,37 +212,41 @@ class SuratJalanController extends BaseController
         }
 
         $input = [
-            'tanggal'       => date('Y-m-d'),
-            'kode_rute'     => $pengiriman['kode_rute'] ?? '',
-            'muatan'        => json_encode($items ?: []),
-            'ttd_produksi'  => null,
-            'id_pengiriman' => (int)$idPengiriman,
-            'id_customer'   => $idCustomer,
+            'tanggal' => date('Y-m-d'),
+            'kode_rute' => $pengiriman['kode_rute'] ?? '',
+            'muatan' => json_encode($items ?: []),
+            'ttd_produksi' => null,
+            'id_pengiriman' => $idPengiriman,
+            'id_customer' => $idCustomer,
             'nama_penerima' => $pengiriman['nama_penerima'] ?? null,
-            'ttd_penerima'  => $pengiriman['ttd_penerima'] ?? null,
+            'ttd_penerima' => $pengiriman['ttd_penerima'] ?? null,
         ];
 
         if ($this->suratJalanModel->insert($input)) {
-            $idSurat = (int)$this->suratJalanModel->getInsertID();
+            $idSurat = $this->suratJalanModel->getGeneratedId();
 
             // Tidak mengurangi stok di tahap Surat Jalan (quick) – sudah ditangani saat order.
-            try { log_message('error', 'SJ quick: skip stock deduction (handled at order time).'); } catch (\Throwable $th) {}
+            try {
+                log_message('error', 'SJ quick: skip stock deduction (handled at order time).');
+            } catch (\Throwable $th) {
+            }
 
             try {
                 $tracking = new \App\Models\ShipmentTrackingModel();
                 $tracking->insert([
-                    'id_pengiriman' => (int)$idPengiriman,
-                    'status'        => 'created',
-                    'location'      => null,
-                    'note'          => 'Surat jalan dibuat (quick)',
-                    'created_at'    => date('Y-m-d H:i:s'),
+                    'id_pengiriman' => $idPengiriman,
+                    'status' => 'created',
+                    'location' => null,
+                    'note' => 'Surat jalan dibuat (quick)',
+                    'created_at' => date('Y-m-d H:i:s'),
                 ]);
-            } catch (\Throwable $th) { /* ignore */ }
+            } catch (\Throwable $th) { /* ignore */
+            }
 
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Surat Jalan berhasil dibuat dari Pengiriman',
-                'url'     => base_url('surat-jalan'),
+                'url' => base_url('surat-jalan'),
             ]);
         }
 
@@ -258,38 +263,47 @@ class SuratJalanController extends BaseController
             ->join('rute', 'nota.kode_rute = rute.kode_rute', 'left')
             ->join('customer', 'nota.id_customer = customer.id_customer', 'left')
             ->find($id);
-        if(!$sj){ throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Surat Jalan tidak ditemukan'); }
+        if (!$sj) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Surat Jalan tidak ditemukan');
+        }
 
         // Decode muatan -> items untuk tampilan rinci
         $items = [];
         $muatan = [];
         if (!empty($sj['muatan'])) {
             $decoded = json_decode($sj['muatan'], true);
-            if (is_array($decoded)) { $muatan = $decoded; }
+            if (is_array($decoded)) {
+                $muatan = $decoded;
+            }
         }
         if ($muatan) {
             $productModel = new \App\Models\ProductModel();
             $prodCache = [];
             foreach ($muatan as $row) {
-                $pid = (int)($row['id_product'] ?? 0);
-                $qty = (float)($row['qty'] ?? 0);
-                if ($pid <= 0 || $qty <= 0) continue;
-                if (!isset($prodCache[$pid])) { $prodCache[$pid] = $productModel->find($pid) ?: []; }
-                $sku = $prodCache[$pid]['sku'] ?? ('#'.$pid);
-                $name = $prodCache[$pid]['name'] ?? ('Produk #'.$pid);
+                $pid = $row['id_product'] ?? 0;
+                $qty = (float) ($row['qty'] ?? 0);
+                if (!$pid || $qty <= 0)
+                    continue;
+                if (!isset($prodCache[$pid])) {
+                    $prodCache[$pid] = $productModel->find($pid) ?: [];
+                }
+                $sku = $prodCache[$pid]['sku'] ?? ('#' . $pid);
+                $name = $prodCache[$pid]['name'] ?? ('Produk #' . $pid);
                 // Berat mengikuti unit atau parse dari SKU
-                $berat = null; $unitVal = $prodCache[$pid]['unit'] ?? null;
+                $berat = null;
+                $unitVal = $prodCache[$pid]['unit'] ?? null;
                 if ($unitVal) {
-                    $beratTry = is_numeric($unitVal) ? (float)$unitVal : null;
-                    if ($beratTry === null && preg_match('/(\d+(?:[\.,]\d+)?)\s*kg/i', (string)$unitVal, $m)) {
-                        $beratTry = (float)str_replace(',', '.', $m[1]);
+                    $beratTry = is_numeric($unitVal) ? (float) $unitVal : null;
+                    if ($beratTry === null && preg_match('/(\d+(?:[\.,]\d+)?)\s*kg/i', (string) $unitVal, $m)) {
+                        $beratTry = (float) str_replace(',', '.', $m[1]);
                     }
-                    if ($beratTry !== null) $berat = $beratTry;
+                    if ($beratTry !== null)
+                        $berat = $beratTry;
                 }
                 if ($berat === null) {
-                    $skuStr = (string)$sku;
+                    $skuStr = (string) $sku;
                     if (preg_match('/(\d+(?:[\.,]\d+)?)\s*kg/i', $skuStr, $m)) {
-                        $berat = (float)str_replace(',', '.', $m[1]);
+                        $berat = (float) str_replace(',', '.', $m[1]);
                     }
                 }
                 $items[] = [
@@ -302,7 +316,7 @@ class SuratJalanController extends BaseController
             }
         }
 
-        return view('pages/nota/detail', [ 'surat_jalan' => $sj, 'items' => $items ]);
+        return view('pages/nota/detail', ['surat_jalan' => $sj, 'items' => $items]);
     }
 
     public function print($id)
@@ -318,7 +332,7 @@ class SuratJalanController extends BaseController
         $customerModel = new \App\Models\CustomerModel();
         $customer = $customerModel->find($sj['id_customer'] ?? null);
 
-    $pengirim = 'PT. Es hokita & Es Tubindo';
+        $pengirim = 'PT. Es hokita & Es Tubindo';
         $penerima = $customer ? ($customer['nama'] ?? '-') : '-';
 
         // Ambil barang langsung dari muatan surat jalan
@@ -336,42 +350,43 @@ class SuratJalanController extends BaseController
             $prodCache = [];
             foreach ($muatan as $i => $row) {
                 if (isset($row['id_product'])) {
-                    $pid = (int)$row['id_product'];
+                    $pid = (int) $row['id_product'];
                     if (!isset($prodCache[$pid])) {
                         $prodCache[$pid] = $productModel->find($pid) ?: [];
                     }
                     $prod = $prodCache[$pid];
-                    $sku = $prod['sku'] ?? ('#'.$pid);
-                    $name = $prod['name'] ?? ('Produk #'.$pid);
-                    
+                    $sku = $prod['sku'] ?? ('#' . $pid);
+                    $name = $prod['name'] ?? ('Produk #' . $pid);
+
                     // Hitung berat satuan dari unit atau SKU
                     $berat = null;
                     $unitVal = $prod['unit'] ?? null;
                     if ($unitVal) {
-                        $beratTry = is_numeric($unitVal) ? (float)$unitVal : null;
-                        if ($beratTry === null && preg_match('/(\d+(?:[\.,]\d+)?)\s*kg/i', (string)$unitVal, $m)) {
-                            $beratTry = (float)str_replace(',', '.', $m[1]);
+                        $beratTry = is_numeric($unitVal) ? (float) $unitVal : null;
+                        if ($beratTry === null && preg_match('/(\d+(?:[\.,]\d+)?)\s*kg/i', (string) $unitVal, $m)) {
+                            $beratTry = (float) str_replace(',', '.', $m[1]);
                         }
-                        if ($beratTry !== null) $berat = $beratTry;
+                        if ($beratTry !== null)
+                            $berat = $beratTry;
                     }
                     if ($berat === null && preg_match('/(\d+(?:[\.,]\d+)?)\s*kg/i', $sku, $m)) {
-                        $berat = (float)str_replace(',', '.', $m[1]);
+                        $berat = (float) str_replace(',', '.', $m[1]);
                     }
-                    
+
                     $barang[] = [
-                        'kode'        => $sku,
+                        'kode' => $sku,
                         'nama_barang' => $name,
-                        'kuantitas'   => (float)($row['qty'] ?? 0),
-                        'berat_kg'    => $berat,
+                        'kuantitas' => (float) ($row['qty'] ?? 0),
+                        'berat_kg' => $berat,
                     ];
                 } else {
                     // fallback untuk struktur lama
                     foreach ($muatan as $k => $v) {
                         $barang[] = [
-                            'kode'        => strtoupper($k),
+                            'kode' => strtoupper($k),
                             'nama_barang' => 'Es ' . ucfirst($k),
-                            'kuantitas'   => is_numeric($v) ? (float)$v : 0,
-                            'berat_kg'    => null,
+                            'kuantitas' => is_numeric($v) ? (float) $v : 0,
+                            'berat_kg' => null,
                         ];
                     }
                     break;
@@ -385,8 +400,8 @@ class SuratJalanController extends BaseController
         return view('pages/nota/print', [
             'pengirim' => $pengirim,
             'penerima' => $penerima,
-            'barang'   => $barang,
-            'rute'     => $rute_info ? $rute_info['nama_wilayah'] : ($sj['kode_rute'] ?? '-'),
+            'barang' => $barang,
+            'rute' => $rute_info ? $rute_info['nama_wilayah'] : ($sj['kode_rute'] ?? '-'),
         ]);
     }
 
@@ -407,7 +422,7 @@ class SuratJalanController extends BaseController
             ->select('p.*, c.nama as customer_name_main, r.nama_wilayah as nama_wilayah')
             ->join('customer c', 'p.id_customer = c.id_customer', 'left')
             ->join('rute r', 'p.kode_rute = r.kode_rute', 'left')
-            ->where('p.id_pengiriman', (int)$idPengiriman)
+            ->where('p.id_pengiriman', $idPengiriman)
             ->get()->getRowArray();
         if (!$pengiriman) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Pengiriman tidak ditemukan');
@@ -418,28 +433,31 @@ class SuratJalanController extends BaseController
             ->select('i.id_invoice, i.id_transaction, t.items, t.transaction_no, c.id_customer, c.nama as customer_name, c.alamat as customer_address')
             ->join('transaction t', 'i.id_transaction = t.id_transaction', 'left')
             ->join('customer c', 't.id_customer = c.id_customer', 'left')
-            ->where('i.id_pengiriman', (int)$idPengiriman)
+            ->where('i.id_pengiriman', $idPengiriman)
             ->orderBy('c.nama', 'ASC')
             ->get()->getResultArray();
 
         if (!$invoices) {
             // Tidak ada invoice, fallback: satu halaman kosong untuk customer pengiriman
-            $pages = [[
-                'customer' => [
-                    'id_customer' => $pengiriman['id_customer'] ?? null,
-                    'name' => $pengiriman['customer_name_main'] ?? '-',
-                    'address' => $pengiriman['alamat_customer'] ?? ($pengiriman['alamat'] ?? '-')
-                ],
-                'items' => []
-            ]];
+            $pages = [
+                [
+                    'customer' => [
+                        'id_customer' => $pengiriman['id_customer'] ?? null,
+                        'name' => $pengiriman['customer_name_main'] ?? '-',
+                        'address' => $pengiriman['alamat_customer'] ?? ($pengiriman['alamat'] ?? '-')
+                    ],
+                    'items' => []
+                ]
+            ];
         } else {
             // Kelompokkan items per customer
             $productModel = new \App\Models\ProductModel();
             $prodCache = [];
             $pagesByCustomer = [];
             foreach ($invoices as $inv) {
-                $cid = (int)($inv['id_customer'] ?? 0);
-                if ($cid <= 0) continue;
+                $cid = (int) ($inv['id_customer'] ?? 0);
+                if ($cid <= 0)
+                    continue;
                 if (!isset($pagesByCustomer[$cid])) {
                     $pagesByCustomer[$cid] = [
                         'customer' => [
@@ -452,34 +470,37 @@ class SuratJalanController extends BaseController
                 }
                 $items = json_decode($inv['items'] ?? '[]', true) ?: [];
                 foreach ($items as $row) {
-                    $pid = (int)($row['id_product'] ?? 0);
-                    $qty = (float)($row['qty'] ?? 0);
-                    if ($pid <= 0 || $qty <= 0) continue;
+                    $pid = $row['id_product'] ?? 0;
+                    $qty = (float) ($row['qty'] ?? 0);
+                    if ($pid <= 0 || $qty <= 0)
+                        continue;
                     if (!isset($prodCache[$pid])) {
                         $p = $productModel->find($pid);
                         $prodCache[$pid] = $p ?: [];
                     }
-                    $sku = $prodCache[$pid]['sku'] ?? ('#'.$pid);
-                    $name = $prodCache[$pid]['name'] ?? ('Produk #'.$pid);
+                    $sku = $prodCache[$pid]['sku'] ?? ('#' . $pid);
+                    $name = $prodCache[$pid]['name'] ?? ('Produk #' . $pid);
                     // Berat satuan (kg) mengikuti field produk (unit). Jika kosong, coba parse dari SKU (e.g. 10KG)
                     $berat = null;
                     $unitVal = $prodCache[$pid]['unit'] ?? null;
                     if ($unitVal !== null && $unitVal !== '') {
-                        $beratTry = is_numeric($unitVal) ? (float)$unitVal : null;
+                        $beratTry = is_numeric($unitVal) ? (float) $unitVal : null;
                         if ($beratTry === null) {
-                            if (preg_match('/(\d+(?:[\.,]\d+)?)\s*kg/i', (string)$unitVal, $m)) {
-                                $beratTry = (float)str_replace(',', '.', $m[1]);
+                            if (preg_match('/(\d+(?:[\.,]\d+)?)\s*kg/i', (string) $unitVal, $m)) {
+                                $beratTry = (float) str_replace(',', '.', $m[1]);
                             }
                         }
-                        if ($beratTry !== null) { $berat = $beratTry; }
-                    }
-                    if ($berat === null) {
-                        $skuStr = (string)($prodCache[$pid]['sku'] ?? '');
-                        if (preg_match('/(\d+(?:[\.,]\d+)?)\s*kg/i', $skuStr, $m)) {
-                            $berat = (float)str_replace(',', '.', $m[1]);
+                        if ($beratTry !== null) {
+                            $berat = $beratTry;
                         }
                     }
-                    $key = (string)$pid;
+                    if ($berat === null) {
+                        $skuStr = (string) ($prodCache[$pid]['sku'] ?? '');
+                        if (preg_match('/(\d+(?:[\.,]\d+)?)\s*kg/i', $skuStr, $m)) {
+                            $berat = (float) str_replace(',', '.', $m[1]);
+                        }
+                    }
+                    $key = (string) $pid;
                     if (!isset($pagesByCustomer[$cid]['items'][$key])) {
                         $pagesByCustomer[$cid]['items'][$key] = [
                             'id_product' => $pid,
@@ -505,18 +526,18 @@ class SuratJalanController extends BaseController
             'pages' => $pages,
         ]);
 
-        $format = strtolower((string)($this->request->getGet('format') ?? $this->request->getGet('pdf') ?? ''));
+        $format = strtolower((string) ($this->request->getGet('format') ?? $this->request->getGet('pdf') ?? ''));
         if ($format === '1' || $format === 'yes' || $format === 'true' || $format === 'pdf') {
             // Render PDF via Dompdf jika tersedia
             try {
-                $dompdf = new \Dompdf\Dompdf([ 'isRemoteEnabled' => true ]);
+                $dompdf = new \Dompdf\Dompdf(['isRemoteEnabled' => true]);
                 $dompdf->loadHtml($html, 'UTF-8');
                 $dompdf->setPaper('A4', 'portrait');
                 $dompdf->render();
-                $filename = 'SuratJalan-BON-'.$pengiriman['no_bon'].'-'.date('Ymd').'.pdf';
+                $filename = 'SuratJalan-BON-' . $pengiriman['no_bon'] . '-' . date('Ymd') . '.pdf';
                 return $this->response
                     ->setHeader('Content-Type', 'application/pdf')
-                    ->setHeader('Content-Disposition', 'inline; filename="'.$filename.'"')
+                    ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
                     ->setBody($dompdf->output());
             } catch (\Throwable $th) {
                 // Fallback ke HTML jika gagal
@@ -530,18 +551,18 @@ class SuratJalanController extends BaseController
     {
         if ($this->request->getMethod() == 'POST') {
             $input = [
-                'tanggal'       => $this->request->getPost('tanggal'),
-                'kode_rute'     => $this->request->getPost('kode_rute'),
+                'tanggal' => $this->request->getPost('tanggal'),
+                'kode_rute' => $this->request->getPost('kode_rute'),
                 'nama_penerima' => $this->request->getPost('nama_penerima') ?: null,
-                'ttd_penerima'  => $this->request->getPost('ttd_penerima') ?: null,
-                'ttd_produksi'  => $this->request->getPost('ttd_produksi') ?: null,
+                'ttd_penerima' => $this->request->getPost('ttd_penerima') ?: null,
+                'ttd_produksi' => $this->request->getPost('ttd_produksi') ?: null,
             ];
 
             if ($this->suratJalanModel->update($id, $input)) {
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'Data berhasil diubah',
-                    'url'     => '/surat-jalan',
+                    'url' => '/surat-jalan',
                 ]);
             }
 

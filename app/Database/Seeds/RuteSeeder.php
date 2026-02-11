@@ -3,6 +3,7 @@
 namespace App\Database\Seeds;
 
 use CodeIgniter\Database\Seeder;
+use App\Libraries\IdGenerator;
 
 class RuteSeeder extends Seeder
 {
@@ -18,8 +19,9 @@ class RuteSeeder extends Seeder
             ['kode_rute' => 'BARAT', 'nama_wilayah' => 'Jakarta Barat (Cengkareng, Kebon Jeruk, Taman Sari)'],
             ['kode_rute' => 'SELATAN', 'nama_wilayah' => 'Jakarta Selatan (Kebayoran, Cilandak, Pasar Minggu)'],
         ];
-        
+
         foreach ($rutes as $rute) {
+            $rute['id_rute'] = IdGenerator::generateForTable('rute', 'id_rute');
             $this->db->table('rute')->insert($rute);
         }
         echo "✓ Rute seeded (8 rute)\n";

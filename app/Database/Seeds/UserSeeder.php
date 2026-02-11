@@ -3,6 +3,7 @@
 namespace App\Database\Seeds;
 
 use CodeIgniter\Database\Seeder;
+use App\Libraries\IdGenerator;
 
 class UserSeeder extends Seeder
 {
@@ -37,13 +38,14 @@ class UserSeeder extends Seeder
                 'updated_at' => date('Y-m-d H:i:s')
             ]
         ];
-        
+
         foreach ($users as $user) {
             $existing = $this->db->table('user')->where('email', $user['email'])->get()->getRowArray();
             if (!$existing) {
+                $user['id_user'] = IdGenerator::generateForTable('user', 'id_user');
                 $this->db->table('user')->insert($user);
             }
         }
-    echo "✓ Users seeded (3 users)\n";
+        echo "✓ Users seeded (3 users)\n";
     }
 }

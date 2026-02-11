@@ -27,7 +27,7 @@ class ShipmentTrackingController extends BaseController
             JOIN customer ON pengiriman.id_customer = customer.id_customer
             ORDER BY shipment_tracking.created_at DESC
         ")->getResultArray();
-        
+
         return view('pages/tracking/index', ['tracking' => $tracking]);
     }
 
@@ -35,7 +35,7 @@ class ShipmentTrackingController extends BaseController
     {
         $timeline = $this->trackingModel
             ->where('id_pengiriman', $idPengiriman)
-            ->orderBy('created_at','ASC')
+            ->orderBy('created_at', 'ASC')
             ->findAll();
         return $this->response->setJSON(['success' => true, 'data' => $timeline]);
     }
@@ -43,7 +43,7 @@ class ShipmentTrackingController extends BaseController
     public function create($idPengiriman)
     {
         $data = [
-            'id_pengiriman' => (int) $idPengiriman,
+            'id_pengiriman' => $idPengiriman,
             'status' => $this->request->getPost('status'),
             'location' => $this->request->getPost('location'),
             'note' => $this->request->getPost('note'),

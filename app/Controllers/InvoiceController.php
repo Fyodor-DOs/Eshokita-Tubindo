@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\InvoiceModel;
 use App\Models\PengirimanModel;
+use App\Libraries\IdGenerator;
 
 class InvoiceController extends BaseController
 {
@@ -20,16 +21,16 @@ class InvoiceController extends BaseController
     public function index()
     {
         $db = \Config\Database::connect();
-        
+
         // Cek kolom mana yang ada di invoice table
         $fields = $db->getFieldNames('invoice');
         $hasPengiriman = in_array('id_pengiriman', $fields);
         $hasTransaction = in_array('id_transaction', $fields);
         $hasFotoSJ = in_array('foto_surat_jalan', $fields);
         $hasFotoTerima = in_array('foto_penerimaan', $fields);
-        
+
         // Build query berdasarkan kolom yang tersedia
-    if ($hasPengiriman && $hasTransaction) {
+        if ($hasPengiriman && $hasTransaction) {
             // Dual system
             $invoices = $db->query("
                 SELECT 
@@ -70,7 +71,7 @@ class InvoiceController extends BaseController
                 ORDER BY invoice.created_at DESC
             ")->getResultArray();
         }
-        
+
         // Calculate total_paid for each invoice & inject status_pengiriman
         foreach ($invoices as &$invoice) {
             $payments = $db->table('payment')
@@ -134,7 +135,7 @@ class InvoiceController extends BaseController
                 if (!empty($invoice['id_customer'])) {
                     $row = $db->table('pengiriman')
                         ->select('status')
-                        ->where('id_customer', (int)$invoice['id_customer'])
+                        ->where('id_customer', $invoice['id_customer'])
                         ->orderBy('tanggal', 'DESC')
                         ->orderBy('id_pengiriman', 'DESC')
                         ->get(1)
@@ -145,7 +146,7 @@ class InvoiceController extends BaseController
                 }
             }
         }
-        
+
         return view('pages/invoice/index', ['invoices' => $invoices]);
     }
 
@@ -181,11 +182,11 @@ class InvoiceController extends BaseController
             'amount' => $amount,
             'status' => 'unpaid',
         ];
-        
+
         if ($this->invoiceModel->insert($data)) {
             return $this->response->setJSON(['success' => true, 'message' => 'Invoice berhasil dibuat', 'url' => '/invoice']);
         }
-        
+
         return $this->response->setJSON(['success' => false, 'message' => $this->invoiceModel->errors()]);
     }
 
@@ -193,7 +194,7 @@ class InvoiceController extends BaseController
     {
         $db = \Config\Database::connect();
         $transaction = $db->table('transaction')->where('id_transaction', $idTransaction)->get()->getRowArray();
-        
+
         if (!$transaction) {
             return $this->response->setJSON(['success' => false, 'message' => 'Transaksi tidak ditemukan']);
         }
@@ -201,7 +202,7 @@ class InvoiceController extends BaseController
         if ($this->request->getMethod() !== 'POST') {
             return view('pages/invoice/confirm_from_transaction', ['transaction' => $transaction]);
         }
-        
+
         // Check if invoice already exists
         $existingInvoice = $db->table('invoice')->where('id_transaction', $idTransaction)->get()->getRowArray();
         if ($existingInvoice) {
@@ -221,11 +222,12 @@ class InvoiceController extends BaseController
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
-        
+
+        $data['id_invoice'] = IdGenerator::generateForTable('invoice', 'id_invoice');
         if ($db->table('invoice')->insert($data)) {
             return $this->response->setJSON(['success' => true, 'message' => 'Invoice berhasil di-generate', 'url' => '/invoice']);
         }
-        
+
         return $this->response->setJSON(['success' => false, 'message' => 'Gagal membuat invoice']);
     }
 }

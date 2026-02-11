@@ -24,8 +24,15 @@ class StockTransactionModel extends Model
 
     /**
      * Record transaksi stock dan update stock
+     *
+     * @param string      $idProduct ID produk (VARCHAR)
+     * @param string      $type      'in' atau 'out'
+     * @param int         $qty       Jumlah
+     * @param string|null $refType   Tipe referensi (misal 'transaction')
+     * @param string|null $refId     ID referensi (VARCHAR)
+     * @param string|null $note      Catatan
      */
-    public function recordTransaction(int $idProduct, string $type, int $qty, ?string $refType = null, ?int $refId = null, ?string $note = null): bool
+    public function recordTransaction(string $idProduct, string $type, int $qty, ?string $refType = null, ?string $refId = null, ?string $note = null): bool
     {
         // Validasi type
         if (!in_array($type, ['in', 'out'])) {
@@ -36,8 +43,8 @@ class StockTransactionModel extends Model
         // Pastikan qty positif
         $qty = abs($qty);
 
-    // Reset last error
-    $this->lastError = null;
+        // Reset last error
+        $this->lastError = null;
 
         // Start transaction
         $db = \Config\Database::connect();
@@ -49,7 +56,9 @@ class StockTransactionModel extends Model
             $txTableExists = false;
             try {
                 $txTableExists = method_exists($db, 'tableExists') ? $db->tableExists($txTable) : in_array($txTable, $db->listTables());
-            } catch (\Throwable $th) { $txTableExists = false; }
+            } catch (\Throwable $th) {
+                $txTableExists = false;
+            }
 
             if ($txTableExists) {
                 $insertResult = $this->insert([
@@ -104,7 +113,7 @@ class StockTransactionModel extends Model
     /**
      * Get history transaksi by product
      */
-    public function getHistoryByProduct(int $idProduct)
+    public function getHistoryByProduct(string $idProduct)
     {
         return $this->where('id_product', $idProduct)
             ->orderBy('created_at', 'DESC')

@@ -27,8 +27,8 @@ class PenerimaanController extends BaseController
 
     public function index()
     {
-    /** @var \CodeIgniter\Database\BaseConnection $db */
-    $db = \Config\Database::connect();
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = \Config\Database::connect();
         $list = $db->query("
             SELECT pnr.*, pg.no_bon, pg.kode_rute, c.nama as customer_name
             FROM penerimaan pnr
@@ -42,11 +42,12 @@ class PenerimaanController extends BaseController
     public function create($idPengiriman)
     {
         $pengiriman = $this->pengirimanModel->find($idPengiriman);
-        if (!$pengiriman) return redirect()->to('/pengiriman');
+        if (!$pengiriman)
+            return redirect()->to('/pengiriman');
 
         if ($this->request->getMethod() !== 'POST') {
             // derive customer options from route
-            $customers = $this->customerModel->where('kode_rute', $pengiriman['kode_rute'])->orderBy('nama','ASC')->findAll();
+            $customers = $this->customerModel->where('kode_rute', $pengiriman['kode_rute'])->orderBy('nama', 'ASC')->findAll();
             return view('pages/penerimaan/create', [
                 'pengiriman' => $pengiriman,
                 'customers' => $customers,
@@ -77,7 +78,7 @@ class PenerimaanController extends BaseController
         }
 
         $data = [
-            'id_pengiriman' => (int) $idPengiriman,
+            'id_pengiriman' => $idPengiriman,
             'id_customer' => $this->request->getPost('id_customer') ?: null,
             'received_at' => $this->request->getPost('received_at') ?: date('Y-m-d H:i:s'),
             'receiver_name' => $this->request->getPost('receiver_name'),
@@ -101,6 +102,6 @@ class PenerimaanController extends BaseController
             'verified_by' => $userId,
             'verified_at' => date('Y-m-d H:i:s')
         ]);
-        return $this->response->setJSON(['success' => (bool)$ok]);
+        return $this->response->setJSON(['success' => (bool) $ok]);
     }
 }

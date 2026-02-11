@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
+use App\Libraries\IdGenerator;
 
 class CustomerController extends BaseController
 {
@@ -116,7 +117,7 @@ class CustomerController extends BaseController
                     ->setJSON(['success' => false, 'message' => 'Gagal menyimpan customer: ' . implode(', ', $this->customerModel->errors())]);
             }
 
-            $idCustomer = (int) $this->customerModel->getInsertID();
+            $idCustomer = $this->customerModel->getGeneratedId();
 
             // At this point we have $idCustomer (either updated existing or newly created)
 
@@ -163,7 +164,10 @@ class CustomerController extends BaseController
                     ];
                 }
 
-                $trxNo = 'TRX-' . date('Ymd') . '-' . str_pad((string) ($db->table('transaction')->like('transaction_no', 'TRX-' . date('Ymd'), 'after')->countAllResults() + 1), 4, '0', STR_PAD_LEFT);
+                $trxPrefix = 'TRX-' . date('y') . date('m');
+                $lastTrx = $db->table('transaction')->select('transaction_no')->like('transaction_no', $trxPrefix, 'after')->orderBy('transaction_no', 'DESC')->limit(1)->get()->getRowArray();
+                $trxSeq = $lastTrx ? (int) substr($lastTrx['transaction_no'], -3) + 1 : 1;
+                $trxNo = $trxPrefix . '-' . str_pad((string) $trxSeq, 3, '0', STR_PAD_LEFT);
 
                 $insertData = [
                     'transaction_no' => $trxNo,
@@ -176,8 +180,9 @@ class CustomerController extends BaseController
                     'updated_at' => date('Y-m-d H:i:s'),
                 ];
 
+                $idTrx = IdGenerator::generateForTable('transaction', 'id_transaction');
+                $insertData['id_transaction'] = $idTrx;
                 $db->table('transaction')->insert($insertData);
-                $idTrx = $db->insertID();
 
                 // Kurangi stok SEKALI SAJA
                 $tx = new \App\Models\StockTransactionModel();
@@ -518,7 +523,10 @@ class CustomerController extends BaseController
                 return $this->response->setJSON(['success' => false, 'message' => 'Item pesanan tidak valid']);
             }
 
-            $trxNo = 'TRX-' . date('Ymd') . '-' . str_pad((string) ($db->table('transaction')->like('transaction_no', 'TRX-' . date('Ymd'), 'after')->countAllResults() + 1), 4, '0', STR_PAD_LEFT);
+            $trxPrefix = 'TRX-' . date('y') . date('m');
+            $lastTrx = $db->table('transaction')->select('transaction_no')->like('transaction_no', $trxPrefix, 'after')->orderBy('transaction_no', 'DESC')->limit(1)->get()->getRowArray();
+            $trxSeq = $lastTrx ? (int) substr($lastTrx['transaction_no'], -3) + 1 : 1;
+            $trxNo = $trxPrefix . '-' . str_pad((string) $trxSeq, 3, '0', STR_PAD_LEFT);
 
             $insertData = [
                 'transaction_no' => $trxNo,
@@ -531,8 +539,9 @@ class CustomerController extends BaseController
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
 
+            $idTrx = IdGenerator::generateForTable('transaction', 'id_transaction');
+            $insertData['id_transaction'] = $idTrx;
             $db->table('transaction')->insert($insertData);
-            $idTrx = $db->insertID();
 
             // Kurangi stok SEKALI SAJA
             $tx = new \App\Models\StockTransactionModel();
@@ -640,7 +649,10 @@ class CustomerController extends BaseController
                 return $this->response->setJSON(['success' => false, 'message' => 'Item pesanan tidak valid']);
             }
 
-            $trxNo = 'TRX-' . date('Ymd') . '-' . str_pad((string) ($db->table('transaction')->like('transaction_no', 'TRX-' . date('Ymd'), 'after')->countAllResults() + 1), 4, '0', STR_PAD_LEFT);
+            $trxPrefix = 'TRX-' . date('y') . date('m');
+            $lastTrx = $db->table('transaction')->select('transaction_no')->like('transaction_no', $trxPrefix, 'after')->orderBy('transaction_no', 'DESC')->limit(1)->get()->getRowArray();
+            $trxSeq = $lastTrx ? (int) substr($lastTrx['transaction_no'], -3) + 1 : 1;
+            $trxNo = $trxPrefix . '-' . str_pad((string) $trxSeq, 3, '0', STR_PAD_LEFT);
 
             $insertData = [
                 'transaction_no' => $trxNo,
@@ -653,8 +665,9 @@ class CustomerController extends BaseController
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
 
+            $idTrx = IdGenerator::generateForTable('transaction', 'id_transaction');
+            $insertData['id_transaction'] = $idTrx;
             $db->table('transaction')->insert($insertData);
-            $idTrx = $db->insertID();
 
             // Kurangi stok SEKALI SAJA
             $tx = new \App\Models\StockTransactionModel();
@@ -707,7 +720,7 @@ class CustomerController extends BaseController
         // Ambil foto terbaru dari pengiriman untuk customer ini (jika ada)
         $pengirimanModel = new \App\Models\PengirimanModel();
         $latestPg = $pengirimanModel
-            ->where('id_customer', (int) $id)
+            ->where('id_customer', $id)
             ->orderBy('tanggal', 'DESC')
             ->first();
 

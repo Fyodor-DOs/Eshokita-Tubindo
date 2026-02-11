@@ -54,7 +54,7 @@ class ProductCategoryController extends BaseController
             }
 
             // Success: include insert id in response for verification
-            $insertId = (int)$this->categoryModel->getInsertID();
+            $insertId = $this->categoryModel->getGeneratedId();
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Kategori berhasil ditambahkan',
@@ -76,18 +76,18 @@ class ProductCategoryController extends BaseController
         if ($this->request->getMethod() === 'POST') {
             $currentCategory = $this->categoryModel->find($id);
             $newName = $this->request->getPost('name');
-            
+
             $data = [
                 'name' => $newName,
                 'description' => $this->request->getPost('description'),
             ];
-            
+
             // Jika nama tidak berubah, skip validasi unique
             if ($currentCategory && $currentCategory['name'] === $newName) {
                 // Hapus aturan is_unique sementara untuk update tanpa ubah nama
                 $this->categoryModel->setValidationRule('name', 'required|min_length[2]');
             }
-            
+
             if ($this->categoryModel->update($id, $data)) {
                 return $this->response->setJSON(['success' => true, 'message' => 'Kategori diubah', 'url' => '/product-category']);
             }

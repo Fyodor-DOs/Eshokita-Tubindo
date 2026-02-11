@@ -3,6 +3,7 @@
 namespace App\Database\Seeds;
 
 use CodeIgniter\Database\Seeder;
+use App\Libraries\IdGenerator;
 
 class ProductSeeder extends Seeder
 {
@@ -17,8 +18,8 @@ class ProductSeeder extends Seeder
             ['cat' => $kristalBesarCat, 'prefix' => 'KRB', 'name' => 'Kristal Besar'],
             ['cat' => $kristalKecilCat, 'prefix' => 'KRK', 'name' => 'Kristal Kecil'],
         ];
-    $berats = [10, 20];
-    $hargas = [15000, 20000];
+        $berats = [10, 20];
+        $hargas = [15000, 20000];
 
         $products = [];
         foreach ($categories as $catInfo) {
@@ -29,15 +30,16 @@ class ProductSeeder extends Seeder
                     'id_category' => $catInfo['cat']['id_category'],
                     'unit' => $berat,
                     'price' => $hargas[$i],
-                    'qty' => rand(20, 100), 
+                    'qty' => rand(20, 100),
                     'active' => 1
                 ];
             }
         }
 
         foreach ($products as $product) {
+            $product['id_product'] = IdGenerator::generateForTable('product', 'id_product');
             $this->db->table('product')->insert($product);
         }
-    echo "✓ Product seeded (6 products: Serut, Kristal Besar, Kristal Kecil x 2 berat dengan stok 20-100)\n";
+        echo "✓ Product seeded (6 products: Serut, Kristal Besar, Kristal Kecil x 2 berat dengan stok 20-100)\n";
     }
 }

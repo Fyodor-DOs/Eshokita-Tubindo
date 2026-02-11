@@ -3,16 +3,17 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Libraries\IdGenerator;
 
 class UserModel extends Model
 {
-    protected $table            = 'user';
-    protected $primaryKey       = 'id_user';
-    protected $useAutoIncrement = true;
-    protected $returnType       = 'array';
-    protected $useSoftDeletes   = false;
-    protected $protectFields    = true;
-    protected $allowedFields    = ['nama', 'telepon', 'email', 'password', 'role'];
+    protected $table = 'user';
+    protected $primaryKey = 'id_user';
+    protected $useAutoIncrement = false;
+    protected $returnType = 'array';
+    protected $useSoftDeletes = false;
+    protected $protectFields = true;
+    protected $allowedFields = ['id_user', 'nama', 'telepon', 'email', 'password', 'role'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
@@ -22,19 +23,18 @@ class UserModel extends Model
 
     // Dates
     protected $useTimestamps = true;
-    protected $dateFormat    = 'datetime';
-    protected $createdField  = 'created_at';
-    protected $updatedField  = 'updated_at';
-    // protected $deletedField  = 'deleted_at';
+    protected $dateFormat = 'datetime';
+    protected $createdField = 'created_at';
+    protected $updatedField = 'updated_at';
 
     // Validation
-    protected $validationRules      = [
+    protected $validationRules = [
         'nama' => 'required',
         'telepon' => 'required|is_unique[user.telepon,id_user,{id_user}]',
         'email' => 'required|valid_email|is_unique[user.email,id_user,{id_user}]',
         'password' => 'required|min_length[8]',
     ];
-    protected $validationMessages   = [
+    protected $validationMessages = [
         'nama' => [
             'required' => 'Masukkan nama lengkap.'
         ],
@@ -52,19 +52,39 @@ class UserModel extends Model
             'min_length' => 'Password minimal 8 karakter.'
         ],
     ];
-    protected $skipValidation       = false;
+    protected $skipValidation = false;
     protected $cleanValidationRules = true;
 
     // Callbacks
     protected $allowCallbacks = true;
-    protected $beforeInsert   = ['hashPassword'];
-    protected $afterInsert    = [];
-    protected $beforeUpdate   = ['hashPassword'];
-    protected $afterUpdate    = [];
-    protected $beforeFind     = [];
-    protected $afterFind      = [];
-    protected $beforeDelete   = [];
-    protected $afterDelete    = [];
+    protected $beforeInsert = ['generateAutoId', 'hashPassword'];
+    protected $afterInsert = [];
+    protected $beforeUpdate = ['hashPassword'];
+    protected $afterUpdate = [];
+    protected $beforeFind = [];
+    protected $afterFind = [];
+    protected $beforeDelete = [];
+    protected $afterDelete = [];
+
+    /** @var string|null Menyimpan ID terakhir yang di-generate */
+    protected ?string $lastGeneratedId = null;
+
+    protected function generateAutoId(array $data): array
+    {
+        if (!isset($data['data'][$this->primaryKey]) || empty($data['data'][$this->primaryKey])) {
+            $id = IdGenerator::generateForTable($this->table, $this->primaryKey);
+            $data['data'][$this->primaryKey] = $id;
+            $this->lastGeneratedId = $id;
+        } else {
+            $this->lastGeneratedId = $data['data'][$this->primaryKey];
+        }
+        return $data;
+    }
+
+    public function getGeneratedId(): ?string
+    {
+        return $this->lastGeneratedId;
+    }
 
     public function hashPassword(array $data)
     {

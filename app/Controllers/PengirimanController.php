@@ -37,18 +37,20 @@ class PengirimanController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'File tidak valid']);
         }
         $dir = FCPATH . 'uploads/suratjalan';
-        if (!is_dir($dir)) { @mkdir($dir, 0777, true); }
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
         $ext = $file->getExtension() ?: 'jpg';
         $newName = 'sj_' . $id . '_' . time() . '.' . $ext;
         try {
             $file->move($dir, $newName, true);
         } catch (\Throwable $e) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Gagal memindahkan file: '.$e->getMessage()]);
+            return $this->response->setJSON(['success' => false, 'message' => 'Gagal memindahkan file: ' . $e->getMessage()]);
         }
 
         // Simpan langsung via Query Builder untuk menghindari kendala allowedFields/Model
         $db = \Config\Database::connect();
-        $ok = $db->table('pengiriman')->where('id_pengiriman', (int)$id)->update([
+        $ok = $db->table('pengiriman')->where('id_pengiriman', $id)->update([
             'foto_surat_jalan' => $newName,
             'status' => 'mengirim',
             'updated_at' => date('Y-m-d H:i:s')
@@ -57,7 +59,11 @@ class PengirimanController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'DB update gagal']);
         }
         // catat tracking
-        try { $t = new \App\Models\ShipmentTrackingModel(); $t->insert(['id_pengiriman'=>$id,'status'=>'on-route','note'=>'Foto SJ diunggah']); } catch (\Throwable $th) {}
+        try {
+            $t = new \App\Models\ShipmentTrackingModel();
+            $t->insert(['id_pengiriman' => $id, 'status' => 'on-route', 'note' => 'Foto SJ diunggah']);
+        } catch (\Throwable $th) {
+        }
         return $this->response->setJSON(['success' => true, 'message' => 'Foto SJ diunggah', 'file' => $newName]);
     }
 
@@ -66,7 +72,7 @@ class PengirimanController extends BaseController
     {
         $db = \Config\Database::connect();
         // Pastikan sudah ada Surat Jalan terlebih dahulu
-        $row = $db->table('pengiriman')->where('id_pengiriman', (int)$id)->get()->getRowArray();
+        $row = $db->table('pengiriman')->where('id_pengiriman', $id)->get()->getRowArray();
         if (!$row) {
             return $this->response->setJSON(['success' => false, 'message' => 'Pengiriman tidak ditemukan']);
         }
@@ -79,16 +85,18 @@ class PengirimanController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'File tidak valid']);
         }
         $dir = FCPATH . 'uploads/penerimaan';
-        if (!is_dir($dir)) { @mkdir($dir, 0777, true); }
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
         $ext = $file->getExtension() ?: 'jpg';
         $newName = 'terima_' . $id . '_' . time() . '.' . $ext;
         try {
             $file->move($dir, $newName, true);
         } catch (\Throwable $e) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Gagal memindahkan file: '.$e->getMessage()]);
+            return $this->response->setJSON(['success' => false, 'message' => 'Gagal memindahkan file: ' . $e->getMessage()]);
         }
 
-        $ok = $db->table('pengiriman')->where('id_pengiriman', (int)$id)->update([
+        $ok = $db->table('pengiriman')->where('id_pengiriman', $id)->update([
             'foto_penerimaan' => $newName,
             'status' => 'diterima',
             'updated_at' => date('Y-m-d H:i:s')
@@ -96,7 +104,11 @@ class PengirimanController extends BaseController
         if (!$ok) {
             return $this->response->setJSON(['success' => false, 'message' => 'DB update gagal']);
         }
-        try { $t = new \App\Models\ShipmentTrackingModel(); $t->insert(['id_pengiriman'=>$id,'status'=>'delivered','note'=>'Penerimaan diunggah']); } catch (\Throwable $th) {}
+        try {
+            $t = new \App\Models\ShipmentTrackingModel();
+            $t->insert(['id_pengiriman' => $id, 'status' => 'delivered', 'note' => 'Penerimaan diunggah']);
+        } catch (\Throwable $th) {
+        }
         return $this->response->setJSON(['success' => true, 'message' => 'Bukti diterima diunggah', 'file' => $newName]);
     }
 
@@ -104,14 +116,14 @@ class PengirimanController extends BaseController
     {
         $db = \Config\Database::connect();
         if ($this->request->getMethod() == 'POST') {
-            $invoiceIds = array_values(array_filter(array_map('intval', (array) $this->request->getPost('invoice_ids'))));
+            $invoiceIds = array_values(array_filter((array) $this->request->getPost('invoice_ids')));
             if (empty($invoiceIds)) {
                 return $this->response->setJSON(['success' => false, 'message' => 'Pilih minimal satu invoice yang akan dikirim']);
             }
 
             $supir = $this->request->getPost('supir') ?? '';
             $kenek = $this->request->getPost('kenek') ?? '';
-            $plat  = $this->request->getPost('plat_kendaraan') ?? '';
+            $plat = $this->request->getPost('plat_kendaraan') ?? '';
             $tanggalInput = $this->request->getPost('tanggal') ?: date('Y-m-d');
             $tanggal = date('Y-m-d H:i:s', strtotime($tanggalInput));
 
@@ -133,7 +145,7 @@ class PengirimanController extends BaseController
             if (!$kodeRute) {
                 return $this->response->setJSON(['success' => false, 'message' => 'Pilih rute pengiriman terlebih dahulu']);
             }
-            
+
             // Cek apakah semua invoice memiliki rute yang sama dengan yang dipilih
             $ruteTidakSesuai = [];
             foreach ($rows as $r) {
@@ -147,7 +159,7 @@ class PengirimanController extends BaseController
 
             // TIDAK PERLU idCustomer tunggal karena 1 BON bisa untuk banyak customer di rute yang sama
             // Kita hanya simpan id_customer pertama untuk backward compatibility dengan schema existing
-            $idCustomer = (int)$rows[0]['id_customer'];
+            $idCustomer = $rows[0]['id_customer'];
 
             // Ambil metode pembayaran terakhir dari salah satu invoice
             $lastPay = $db->table('payment')
@@ -155,23 +167,26 @@ class PengirimanController extends BaseController
                 ->orderBy('paid_at', 'DESC')
                 ->get()->getRowArray();
             $payMethod = strtolower($lastPay['method'] ?? 'cash');
-            if (!in_array($payMethod, ['cash','kredit','transfer'])) $payMethod = 'cash';
+            if (!in_array($payMethod, ['cash', 'kredit', 'transfer']))
+                $payMethod = 'cash';
 
             // Gabungkan items dari semua transaksi
             $productModel = new \App\Models\ProductModel();
             $pemesanan = [];
             foreach ($rows as $r) {
-                $trx = $db->table('transaction')->where('id_transaction', (int)$r['id_transaction'])->get()->getRowArray();
-                if (!$trx) continue;
+                $trx = $db->table('transaction')->where('id_transaction', $r['id_transaction'])->get()->getRowArray();
+                if (!$trx)
+                    continue;
                 $items = json_decode($trx['items'] ?? '[]', true) ?: [];
                 foreach ($items as $it) {
-                    $prod = $productModel->find((int)($it['id_product'] ?? 0));
-                    if (!$prod) continue;
-                    $qty = (int)($it['qty'] ?? 0);
-                    $harga = (float)($it['price'] ?? 0);
-                    $total = (float)($it['subtotal'] ?? ($qty*$harga));
+                    $prod = $productModel->find($it['id_product'] ?? 0);
+                    if (!$prod)
+                        continue;
+                    $qty = (int) ($it['qty'] ?? 0);
+                    $harga = (float) ($it['price'] ?? 0);
+                    $total = (float) ($it['subtotal'] ?? ($qty * $harga));
                     $pemesanan[] = [
-                        'id_product' => (int)$prod['id_product'],
+                        'id_product' => $prod['id_product'],
                         'qty' => $qty,
                         'harga' => $harga,
                         'total' => $total,
@@ -198,7 +213,7 @@ class PengirimanController extends BaseController
             $db->transStart();
             $okInsert = $this->pengirimanModel->insert($payload);
             if ($okInsert) {
-                $idPengirimanBaru = (int)$this->pengirimanModel->getInsertID();
+                $idPengirimanBaru = $this->pengirimanModel->getGeneratedId();
                 // tautkan semua invoice ke BON ini jika kolom tersedia
                 try {
                     $fields = $db->getFieldNames('invoice');
@@ -208,7 +223,8 @@ class PengirimanController extends BaseController
                             'updated_at' => date('Y-m-d H:i:s')
                         ]);
                     }
-                } catch (\Throwable $th) { /* ignore and continue */ }
+                } catch (\Throwable $th) { /* ignore and continue */
+                }
             }
             $db->transComplete();
 
@@ -219,16 +235,16 @@ class PengirimanController extends BaseController
             return $this->response->setJSON(['success' => true, 'message' => '1 pengiriman (BON) dibuat dari invoice terpilih', 'url' => '/pengiriman']);
         }
 
-                // GET: tampilkan HANYA invoice siap dikirim (PAID SAJA) dan BELUM memiliki pengiriman yang terhubung
-    $fields = $db->getFieldNames('invoice');
-    $hasInvoicePengiriman = in_array('id_pengiriman', $fields);
+        // GET: tampilkan HANYA invoice siap dikirim (PAID SAJA) dan BELUM memiliki pengiriman yang terhubung
+        $fields = $db->getFieldNames('invoice');
+        $hasInvoicePengiriman = in_array('id_pengiriman', $fields);
 
-                $where = "WHERE i.status = 'paid'";
+        $where = "WHERE i.status = 'paid'";
         if ($hasInvoicePengiriman) {
             // Hanya invoice yang belum pernah dibuatkan pengiriman
-            $where .= " AND (i.id_pengiriman IS NULL OR i.id_pengiriman = 0)";
+            $where .= " AND (i.id_pengiriman IS NULL OR i.id_pengiriman = '')";
         }
-                $sql = "
+        $sql = "
                         SELECT i.id_invoice, i.invoice_no, i.issue_date, i.amount, i.status,
                                      c.id_customer, c.nama AS customer_name, c.kode_rute
                         FROM invoice i
@@ -237,7 +253,7 @@ class PengirimanController extends BaseController
                         $where
                         ORDER BY c.kode_rute, c.nama, i.issue_date DESC
                 ";
-    $data['invoiceCandidates'] = $db->query($sql)->getResultArray();
+        $data['invoiceCandidates'] = $db->query($sql)->getResultArray();
 
         $data['rutes'] = $this->ruteModel->findAll();
         return view("pages/pengiriman/create", $data);
@@ -253,7 +269,7 @@ class PengirimanController extends BaseController
     {
         $db = \Config\Database::connect();
         // Ambil invoice, join transaction & customer
-        $invoice = $db->table('invoice')->where('id_invoice', (int)$idInvoice)->get()->getRowArray();
+        $invoice = $db->table('invoice')->where('id_invoice', $idInvoice)->get()->getRowArray();
         if (!$invoice) {
             return $this->response->setJSON(['success' => false, 'message' => 'Invoice tidak ditemukan']);
         }
@@ -276,24 +292,29 @@ class PengirimanController extends BaseController
         $productModel = new \App\Models\ProductModel();
         $pemesanan = [];
         foreach ($items as $it) {
-            $prod = $productModel->find((int)($it['id_product'] ?? 0));
-            if (!$prod) continue;
+            $prod = $productModel->find($it['id_product'] ?? 0);
+            if (!$prod)
+                continue;
             $key = null;
             $sku = strtoupper($prod['sku'] ?? '');
-            if (str_contains($sku, 'BESAR')) $key = 'besar';
-            elseif (str_contains($sku, 'KECIL')) $key = 'kecil';
-            elseif (str_contains($sku, 'SERUT')) $key = 'serut';
+            if (str_contains($sku, 'BESAR'))
+                $key = 'besar';
+            elseif (str_contains($sku, 'KECIL'))
+                $key = 'kecil';
+            elseif (str_contains($sku, 'SERUT'))
+                $key = 'serut';
             // default: skip jika tidak dikenali agar tidak bentrok dengan UI existing
-            if (!$key) continue;
-            $qty = (int)($it['qty'] ?? 0);
-            $harga = (float)($it['price'] ?? 0);
-            $total = (float)($it['subtotal'] ?? ($qty * $harga));
-            $pemesanan[$key] = [ 'qty' => $qty, 'harga' => $harga, 'total' => $total ];
+            if (!$key)
+                continue;
+            $qty = (int) ($it['qty'] ?? 0);
+            $harga = (float) ($it['price'] ?? 0);
+            $total = (float) ($it['subtotal'] ?? ($qty * $harga));
+            $pemesanan[$key] = ['qty' => $qty, 'harga' => $harga, 'total' => $total];
         }
 
         // Cari metode pembayaran terakhir (jika ada) untuk set enum pembayaran
         $lastPay = $db->table('payment')
-            ->where('id_invoice', (int)$idInvoice)
+            ->where('id_invoice', $idInvoice)
             ->orderBy('paid_at', 'DESC')
             ->get()->getRowArray();
         $payMethod = strtolower($lastPay['method'] ?? 'cash');
@@ -310,26 +331,27 @@ class PengirimanController extends BaseController
             'kenek' => null,
             'plat_kendaraan' => null,
             'kode_rute' => $customer['kode_rute'] ?? '',
-            'id_customer' => (int)$customer['id_customer'],
+            'id_customer' => $customer['id_customer'],
             'nama_penerima' => '',
             'pembayaran' => $payMethod,
             'pemesanan' => !empty($pemesanan) ? json_encode($pemesanan) : '[]',
             'ttd_penerima' => '',
         ];
         if ($this->pengirimanModel->insert($payload)) {
-            $idPengiriman = (int)$this->pengirimanModel->getInsertID();
+            $idPengiriman = $this->pengirimanModel->getGeneratedId();
             // Jika kolom id_pengiriman ada di table invoice, simpan relasinya
             try {
                 $fields = $db->getFieldNames('invoice');
                 if (in_array('id_pengiriman', $fields)) {
-                    $db->table('invoice')->where('id_invoice', (int)$idInvoice)->update(['id_pengiriman' => $idPengiriman]);
+                    $db->table('invoice')->where('id_invoice', $idInvoice)->update(['id_pengiriman' => $idPengiriman]);
                 }
-            } catch (\Throwable $th) { /* ignore */ }
+            } catch (\Throwable $th) { /* ignore */
+            }
 
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Pengiriman dibuat dari invoice. Lanjutkan ke detail untuk Tracking/Penerimaan.',
-                'url' => base_url('pengiriman/detail/'.$idPengiriman)
+                'url' => base_url('pengiriman/detail/' . $idPengiriman)
             ]);
         }
         return $this->response->setJSON(['success' => false, 'message' => $this->pengirimanModel->errors()]);
@@ -348,15 +370,15 @@ class PengirimanController extends BaseController
         $itemsRaw = json_decode($data['pengiriman']['pemesanan'] ?? '[]', true) ?: [];
         $items = [];
         if (isset($itemsRaw['besar']) || isset($itemsRaw['kecil']) || isset($itemsRaw['serut'])) {
-            foreach (['besar','kecil','serut'] as $k) {
+            foreach (['besar', 'kecil', 'serut'] as $k) {
                 if (!empty($itemsRaw[$k])) {
                     $i = $itemsRaw[$k];
                     $items[] = [
                         'name' => 'Es ' . ucfirst($k),
                         'id_product' => $i['id_product'] ?? null,
-                        'qty' => (int)($i['qty'] ?? 0),
-                        'harga' => (float)($i['harga'] ?? 0),
-                        'total' => (float)($i['total'] ?? 0),
+                        'qty' => (int) ($i['qty'] ?? 0),
+                        'harga' => (float) ($i['harga'] ?? 0),
+                        'total' => (float) ($i['total'] ?? 0),
                     ];
                 }
             }
@@ -365,27 +387,30 @@ class PengirimanController extends BaseController
                 $items[] = [
                     'name' => $i['name'] ?? null,
                     'id_product' => $i['id_product'] ?? null,
-                    'qty' => (int)($i['qty'] ?? 0),
-                    'harga' => (float)($i['harga'] ?? ($i['price'] ?? 0)),
-                    'total' => (float)($i['total'] ?? ($i['subtotal'] ?? 0)),
+                    'qty' => (int) ($i['qty'] ?? 0),
+                    'harga' => (float) ($i['harga'] ?? ($i['price'] ?? 0)),
+                    'total' => (float) ($i['total'] ?? ($i['subtotal'] ?? 0)),
                 ];
             }
         }
         // Lengkapi nama produk dari ProductModel apabila tersedia
-        $ids = array_values(array_unique(array_filter(array_map(fn($r)=>$r['id_product'] ?? null, $items))));
+        $ids = array_values(array_unique(array_filter(array_map(fn($r) => $r['id_product'] ?? null, $items))));
         if (!empty($ids)) {
             try {
                 $pm = new \App\Models\ProductModel();
                 $prods = $pm->whereIn('id_product', $ids)->findAll();
                 $map = [];
-                foreach ($prods as $p) { $map[$p['id_product']] = $p['name'] ?: ($p['sku'] ?? ('#'.$p['id_product'])); }
+                foreach ($prods as $p) {
+                    $map[$p['id_product']] = $p['name'] ?: ($p['sku'] ?? ('#' . $p['id_product']));
+                }
                 foreach ($items as &$it) {
                     if (empty($it['name']) && !empty($it['id_product']) && isset($map[$it['id_product']])) {
                         $it['name'] = $map[$it['id_product']];
                     }
                 }
                 unset($it);
-            } catch (\Throwable $th) {}
+            } catch (\Throwable $th) {
+            }
         }
         $data['items'] = $items;
 
@@ -394,7 +419,7 @@ class PengirimanController extends BaseController
             $data['invoices'] = $db->table('invoice i')
                 ->select('i.*, t.transaction_no, t.transaction_date')
                 ->join('transaction t', 'i.id_transaction = t.id_transaction', 'left')
-                ->where('i.id_pengiriman', (int)$id)
+                ->where('i.id_pengiriman', $id)
                 ->orderBy('i.created_at', 'DESC')
                 ->get()->getResultArray();
         } catch (\Throwable $th) {
@@ -412,75 +437,82 @@ class PengirimanController extends BaseController
             ->select('i.id_invoice, i.invoice_no, i.amount, i.status, i.foto_surat_jalan, i.foto_penerimaan, i.created_at, c.nama as customer_name')
             ->join('transaction t', 't.id_transaction = i.id_transaction', 'left')
             ->join('customer c', 'c.id_customer = t.id_customer', 'left')
-            ->where('i.id_pengiriman', (int)$idPengiriman)
+            ->where('i.id_pengiriman', $idPengiriman)
             ->orderBy('i.created_at', 'DESC')
             ->get()->getResultArray();
-        return $this->response->setJSON([ 'success' => true, 'data' => $rows ]);
+        return $this->response->setJSON(['success' => true, 'data' => $rows]);
     }
 
     // Upload Surat Jalan per-invoice
     public function uploadSuratJalanInvoice($idInvoice)
     {
         $invoiceModel = new \App\Models\InvoiceModel();
-        $inv = $invoiceModel->find((int)$idInvoice);
-        if (!$inv) return $this->response->setJSON(['success'=>false,'message'=>'Invoice tidak ditemukan']);
+        $inv = $invoiceModel->find($idInvoice);
+        if (!$inv)
+            return $this->response->setJSON(['success' => false, 'message' => 'Invoice tidak ditemukan']);
 
         $file = $this->request->getFile('foto');
-        if (!$file || !$file->isValid()) return $this->response->setJSON(['success'=>false,'message'=>'File tidak valid']);
+        if (!$file || !$file->isValid())
+            return $this->response->setJSON(['success' => false, 'message' => 'File tidak valid']);
 
-    $newName = $file->getRandomName();
-    $targetDir = FCPATH.'uploads/suratjalan';
-        if (!is_dir($targetDir)) @mkdir($targetDir, 0775, true);
+        $newName = $file->getRandomName();
+        $targetDir = FCPATH . 'uploads/suratjalan';
+        if (!is_dir($targetDir))
+            @mkdir($targetDir, 0775, true);
         $file->move($targetDir, $newName);
 
-        $invoiceModel->update($inv['id_invoice'], [ 'foto_surat_jalan' => $newName ]);
+        $invoiceModel->update($inv['id_invoice'], ['foto_surat_jalan' => $newName]);
 
         // Update status pengiriman jika semua invoice sudah punya SJ
         if (!empty($inv['id_pengiriman'])) {
             $db = \Config\Database::connect();
-            $rows = $db->table('invoice')->select('foto_surat_jalan,foto_penerimaan')->where('id_pengiriman', (int)$inv['id_pengiriman'])->get()->getResultArray();
-            $allSJ = !empty($rows) && array_reduce($rows, fn($c,$r)=>$c && !empty($r['foto_surat_jalan']), true);
-            $allTerima = !empty($rows) && array_reduce($rows, fn($c,$r)=>$c && !empty($r['foto_penerimaan']), true);
+            $rows = $db->table('invoice')->select('foto_surat_jalan,foto_penerimaan')->where('id_pengiriman', $inv['id_pengiriman'])->get()->getResultArray();
+            $allSJ = !empty($rows) && array_reduce($rows, fn($c, $r) => $c && !empty($r['foto_surat_jalan']), true);
+            $allTerima = !empty($rows) && array_reduce($rows, fn($c, $r) => $c && !empty($r['foto_penerimaan']), true);
             $newStatus = $allTerima ? 'diterima' : ($allSJ ? 'mengirim' : null);
             if ($newStatus) {
-                $db->table('pengiriman')->where('id_pengiriman', (int)$inv['id_pengiriman'])->update(['status'=>$newStatus]);
+                $db->table('pengiriman')->where('id_pengiriman', $inv['id_pengiriman'])->update(['status' => $newStatus]);
             }
         }
 
-        return $this->response->setJSON(['success'=>true, 'file'=>$newName]);
+        return $this->response->setJSON(['success' => true, 'file' => $newName]);
     }
 
     // Upload Bukti Diterima per-invoice (wajib punya SJ terlebih dahulu)
     public function uploadPenerimaanInvoice($idInvoice)
     {
         $invoiceModel = new \App\Models\InvoiceModel();
-        $inv = $invoiceModel->find((int)$idInvoice);
-        if (!$inv) return $this->response->setJSON(['success'=>false,'message'=>'Invoice tidak ditemukan']);
-        if (empty($inv['foto_surat_jalan'])) return $this->response->setJSON(['success'=>false,'message'=>'Upload Surat Jalan dahulu']);
+        $inv = $invoiceModel->find($idInvoice);
+        if (!$inv)
+            return $this->response->setJSON(['success' => false, 'message' => 'Invoice tidak ditemukan']);
+        if (empty($inv['foto_surat_jalan']))
+            return $this->response->setJSON(['success' => false, 'message' => 'Upload Surat Jalan dahulu']);
 
         $file = $this->request->getFile('foto');
-        if (!$file || !$file->isValid()) return $this->response->setJSON(['success'=>false,'message'=>'File tidak valid']);
+        if (!$file || !$file->isValid())
+            return $this->response->setJSON(['success' => false, 'message' => 'File tidak valid']);
 
-    $newName = $file->getRandomName();
-    $targetDir = FCPATH.'uploads/penerimaan';
-        if (!is_dir($targetDir)) @mkdir($targetDir, 0775, true);
+        $newName = $file->getRandomName();
+        $targetDir = FCPATH . 'uploads/penerimaan';
+        if (!is_dir($targetDir))
+            @mkdir($targetDir, 0775, true);
         $file->move($targetDir, $newName);
 
-        $invoiceModel->update($inv['id_invoice'], [ 'foto_penerimaan' => $newName ]);
+        $invoiceModel->update($inv['id_invoice'], ['foto_penerimaan' => $newName]);
 
         // Update status pengiriman jika semua invoice sudah punya bukti diterima
         if (!empty($inv['id_pengiriman'])) {
             $db = \Config\Database::connect();
-            $rows = $db->table('invoice')->select('foto_surat_jalan,foto_penerimaan')->where('id_pengiriman', (int)$inv['id_pengiriman'])->get()->getResultArray();
-            $allSJ = !empty($rows) && array_reduce($rows, fn($c,$r)=>$c && !empty($r['foto_surat_jalan']), true);
-            $allTerima = !empty($rows) && array_reduce($rows, fn($c,$r)=>$c && !empty($r['foto_penerimaan']), true);
+            $rows = $db->table('invoice')->select('foto_surat_jalan,foto_penerimaan')->where('id_pengiriman', $inv['id_pengiriman'])->get()->getResultArray();
+            $allSJ = !empty($rows) && array_reduce($rows, fn($c, $r) => $c && !empty($r['foto_surat_jalan']), true);
+            $allTerima = !empty($rows) && array_reduce($rows, fn($c, $r) => $c && !empty($r['foto_penerimaan']), true);
             $newStatus = $allTerima ? 'diterima' : ($allSJ ? 'mengirim' : null);
             if ($newStatus) {
-                $db->table('pengiriman')->where('id_pengiriman', (int)$inv['id_pengiriman'])->update(['status'=>$newStatus]);
+                $db->table('pengiriman')->where('id_pengiriman', $inv['id_pengiriman'])->update(['status' => $newStatus]);
             }
         }
 
-        return $this->response->setJSON(['success'=>true, 'file'=>$newName]);
+        return $this->response->setJSON(['success' => true, 'file' => $newName]);
     }
 
     public function edit($id)
