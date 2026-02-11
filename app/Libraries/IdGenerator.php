@@ -6,14 +6,15 @@ namespace App\Libraries;
  * ID Generator Library
  * 
  * Menghasilkan ID unik bermakna dengan format:
- * [TAHUN 2 digit][BULAN 2 digit][NOMOR_URUT 3 digit]
+ * [TAHUN 2 digit][BULAN 2 digit][HARI 2 digit][NOMOR_URUT 3 digit]
  * 
- * Contoh: 2602001
+ * Contoh: 260211001
  * - 26   = tahun (2026)
  * - 02   = bulan (Februari)
- * - 001  = nomor urut
+ * - 11   = hari (tanggal 11)
+ * - 001  = nomor urut (reset setiap hari baru)
  * 
- * Total: 7 karakter → muat di VARCHAR(10)
+ * Total: 9 karakter → muat di VARCHAR(10)
  */
 class IdGenerator
 {
@@ -22,19 +23,20 @@ class IdGenerator
      *
      * @param string $table      Nama tabel
      * @param string $primaryKey Nama kolom primary key
-     * @return string ID baru (7 karakter)
+     * @return string ID baru (9 karakter)
      */
     public static function generate(string $table, string $primaryKey): string
     {
         $tahun = date('y'); // 2 digit terakhir tahun
         $bulan = date('m'); // 01-12
+        $hari = date('d'); // 01-31
 
-        // Prefix = tahun + bulan => 4 karakter
-        $prefix = $tahun . $bulan;
+        // Prefix = tahun + bulan + hari => 6 karakter
+        $prefix = $tahun . $bulan . $hari;
 
         $db = \Config\Database::connect();
 
-        // Cari nomor urut terakhir dengan prefix yang sama
+        // Cari nomor urut terakhir dengan prefix yang sama (hari ini)
         $result = $db->table($table)
             ->select($primaryKey)
             ->like($primaryKey, $prefix, 'after')

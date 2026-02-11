@@ -44,7 +44,7 @@ class InvoiceModel extends Model
 
     public function generateInvoiceNo(): string
     {
-        $prefix = 'INV-' . date('y') . date('m'); // INV-2602
+        $prefix = 'INV-' . date('Ymd'); // INV-20260211
         $db = \Config\Database::connect();
 
         $result = $db->table($this->table)

@@ -200,7 +200,7 @@ class TransactionController extends BaseController
 
     private function generateTransactionNo()
     {
-        $prefix = 'TRX-' . date('y') . date('m'); // TRX-2602
+        $prefix = 'TRX-' . date('Ymd'); // TRX-20260211
         $db = \Config\Database::connect();
 
         $result = $db->table('transaction')

@@ -164,7 +164,7 @@ class CustomerController extends BaseController
                     ];
                 }
 
-                $trxPrefix = 'TRX-' . date('y') . date('m');
+                $trxPrefix = 'TRX-' . date('Ymd');
                 $lastTrx = $db->table('transaction')->select('transaction_no')->like('transaction_no', $trxPrefix, 'after')->orderBy('transaction_no', 'DESC')->limit(1)->get()->getRowArray();
                 $trxSeq = $lastTrx ? (int) substr($lastTrx['transaction_no'], -3) + 1 : 1;
                 $trxNo = $trxPrefix . '-' . str_pad((string) $trxSeq, 3, '0', STR_PAD_LEFT);
@@ -523,7 +523,7 @@ class CustomerController extends BaseController
                 return $this->response->setJSON(['success' => false, 'message' => 'Item pesanan tidak valid']);
             }
 
-            $trxPrefix = 'TRX-' . date('y') . date('m');
+            $trxPrefix = 'TRX-' . date('Ymd');
             $lastTrx = $db->table('transaction')->select('transaction_no')->like('transaction_no', $trxPrefix, 'after')->orderBy('transaction_no', 'DESC')->limit(1)->get()->getRowArray();
             $trxSeq = $lastTrx ? (int) substr($lastTrx['transaction_no'], -3) + 1 : 1;
             $trxNo = $trxPrefix . '-' . str_pad((string) $trxSeq, 3, '0', STR_PAD_LEFT);
@@ -649,7 +649,7 @@ class CustomerController extends BaseController
                 return $this->response->setJSON(['success' => false, 'message' => 'Item pesanan tidak valid']);
             }
 
-            $trxPrefix = 'TRX-' . date('y') . date('m');
+            $trxPrefix = 'TRX-' . date('Ymd');
             $lastTrx = $db->table('transaction')->select('transaction_no')->like('transaction_no', $trxPrefix, 'after')->orderBy('transaction_no', 'DESC')->limit(1)->get()->getRowArray();
             $trxSeq = $lastTrx ? (int) substr($lastTrx['transaction_no'], -3) + 1 : 1;
             $trxNo = $trxPrefix . '-' . str_pad((string) $trxSeq, 3, '0', STR_PAD_LEFT);

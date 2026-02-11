@@ -6,15 +6,24 @@
 <?php $sj = $surat_jalan ?? []; ?>
 <div class="card">
   <div class="card-body">
-    <?php 
-      $tgl = isset($sj['tanggal']) ? date('Ymd', strtotime($sj['tanggal'])) : date('Ymd');
-      $noSurat = 'SJ-' . $tgl . '-' . str_pad((string)($sj['id_surat_jalan'] ?? 0), 4, '0', STR_PAD_LEFT);
+    <?php
+    $tgl = isset($sj['tanggal']) ? date('Ymd', strtotime($sj['tanggal'])) : date('Ymd');
+    // Hitung urutan SJ pada tanggal yang sama
+    $sjDate = isset($sj['tanggal']) ? date('Y-m-d', strtotime($sj['tanggal'])) : date('Y-m-d');
+    $db = \Config\Database::connect();
+    $sjSeq = $db->table('nota')
+      ->where('tanggal', $sjDate)
+      ->where('id_surat_jalan <=', $sj['id_surat_jalan'] ?? 0)
+      ->countAllResults() ?: 1;
+    $noSurat = 'SJ-' . $tgl . '-' . str_pad((string) $sjSeq, 3, '0', STR_PAD_LEFT);
     ?>
     <div class="d-flex align-items-center gap-3 mb-2">
-      <img src="<?= base_url('assets/image/Logo.png') ?>" alt="Logo" style="height:50px" onerror="this.style.display='none'"/>
+      <img src="<?= base_url('assets/image/Logo.png') ?>" alt="Logo" style="height:50px"
+        onerror="this.style.display='none'" />
       <div>
         <h5 class="mb-0">NOTA PENGIRIMAN</h5>
-        <small class="text-muted">No: <?= esc($noSurat) ?> | Tanggal: <?= esc(date('d M Y', strtotime($sj['tanggal'] ?? date('Y-m-d')))) ?></small>
+        <small class="text-muted">No: <?= esc($noSurat) ?> | Tanggal:
+          <?= esc(date('d M Y', strtotime($sj['tanggal'] ?? date('Y-m-d')))) ?></small>
       </div>
       <div class="ms-auto text-end">
         <div><small>Pengirim:</small> <strong>PT. Es hokita &amp; Es Tubindo</strong></div>
@@ -36,15 +45,23 @@
           </tr>
         </thead>
         <tbody>
-          <?php $totalQty=0; $totalBerat=0.0; foreach(($items ?? []) as $i=>$it): $totalQty += (float)($it['qty']??0); $totalBerat += ($it['total_berat']??0); ?>
-          <tr>
-            <td class="text-center"><?= $i+1 ?></td>
-            <td><?= esc($it['sku'] ?? '-') ?></td>
-            <td><?= esc($it['name'] ?? '-') ?></td>
-            <td class="text-end"><?= number_format((float)($it['qty'] ?? 0), 0, ',', '.') ?></td>
-            <td class="text-end"><?= isset($it['berat_kg']) && $it['berat_kg']!==null ? number_format((float)$it['berat_kg'], 2, ',', '.') : '-' ?></td>
-            <td class="text-end"><?= isset($it['total_berat']) && $it['total_berat']!==null ? number_format((float)$it['total_berat'], 2, ',', '.') : '-' ?></td>
-          </tr>
+          <?php $totalQty = 0;
+          $totalBerat = 0.0;
+          foreach (($items ?? []) as $i => $it):
+            $totalQty += (float) ($it['qty'] ?? 0);
+            $totalBerat += ($it['total_berat'] ?? 0); ?>
+            <tr>
+              <td class="text-center"><?= $i + 1 ?></td>
+              <td><?= esc($it['sku'] ?? '-') ?></td>
+              <td><?= esc($it['name'] ?? '-') ?></td>
+              <td class="text-end"><?= number_format((float) ($it['qty'] ?? 0), 0, ',', '.') ?></td>
+              <td class="text-end">
+                <?= isset($it['berat_kg']) && $it['berat_kg'] !== null ? number_format((float) $it['berat_kg'], 2, ',', '.') : '-' ?>
+              </td>
+              <td class="text-end">
+                <?= isset($it['total_berat']) && $it['total_berat'] !== null ? number_format((float) $it['total_berat'], 2, ',', '.') : '-' ?>
+              </td>
+            </tr>
           <?php endforeach; ?>
         </tbody>
         <tfoot>
@@ -72,7 +89,8 @@
     </div>
 
     <div class="mt-3 d-flex gap-2 justify-content-end">
-      <a href="<?= base_url('/nota/print/'.($sj['id_surat_jalan'])) ?>" class="btn btn-secondary" target="_blank"><i class="bi bi-printer"></i> Print</a>
+      <a href="<?= base_url('/nota/print/' . ($sj['id_surat_jalan'])) ?>" class="btn btn-secondary" target="_blank"><i
+          class="bi bi-printer"></i> Print</a>
     </div>
   </div>
 </div>

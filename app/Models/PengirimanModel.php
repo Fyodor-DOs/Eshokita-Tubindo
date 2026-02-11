@@ -81,7 +81,7 @@ class PengirimanModel extends Model
 
     public function generateNoBon()
     {
-        $prefix = 'BON-' . date('y') . date('m'); // BON-2602
+        $prefix = 'BON-' . date('Ymd'); // BON-20260211
         $db = \Config\Database::connect();
 
         $result = $db->table($this->table)
